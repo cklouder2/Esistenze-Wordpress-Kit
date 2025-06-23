@@ -1,0 +1,116 @@
+/* Smart Product Buttons - Frontend Styles */
+
+.esistenze-smart-buttons-frontend {
+    margin-top: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.esistenze-smart-btn {
+    padding: 10px 20px !important;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease-out;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    letter-spacing: 0.2px;
+    position: relative;
+    overflow: hidden;
+    white-space: normal;
+    word-break: break-word;
+    text-align: center;
+    font-weight: 600;
+}
+
+.esistenze-smart-btn:hover {
+    transform: translateY(-3px) scale(1.05) !important;
+    text-decoration: none;
+}
+
+.esistenze-smart-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.5s ease, height 0.5s ease;
+}
+
+.esistenze-smart-btn:hover::before {
+    width: 200px;
+    height: 200px;
+}
+
+.esistenze-smart-btn i {
+    font-size: 16px;
+    margin-right: 2px;
+}
+
+/* Modal styles */
+.esistenze-smart-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    padding-top: 60px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+}
+
+.esistenze-smart-modal-content {
+    background-color: #fff;
+    margin: auto;
+    padding: 24px;
+    border: 1px solid #ddd;
+    width: 90%;
+    max-width: 500px;
+    min-width: 750px;
+    border-radius: 12px;
+    position: relative;
+    animation: fadeInSlide 0.4s ease-out;
+}
+
+@keyframes fadeInSlide {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.esistenze-smart-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    color: #888;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.esistenze-smart-close:hover,
+.esistenze-smart-close:focus {
+    color: #333;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+@media (max-width: 600px) {
+    .esistenze-smart-btn {
+        width: 100%;
+        padding: 8px 15px !important;
+        font-size: 12px !important;
+    }
+    .esistenze-smart-modal-content {
+        min-width: 90%;
+    }
+}

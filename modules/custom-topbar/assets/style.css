@@ -1,0 +1,111 @@
+/* Custom Topbar - Frontend Styles */
+
+:root {
+    --esistenze-bg-color: #4CAF50;
+    --esistenze-bg-color-dark: #388E3C;
+    --esistenze-text-color: #ffffff;
+    --esistenze-font-size: 16px;
+    --esistenze-padding: 5%;
+    --esistenze-height: 50px;
+}
+
+.esistenze-top-bar {
+    width: 100%;
+    height: var(--esistenze-height);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: var(--esistenze-padding);
+    padding-right: var(--esistenze-padding);
+    background: linear-gradient(90deg, var(--esistenze-bg-color) 0%, var(--esistenze-bg-color-dark) 100%);
+    color: var(--esistenze-text-color);
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 99999;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+    transition: background 0.6s ease-in-out, box-shadow 0.3s ease;
+    backdrop-filter: saturate(180%) blur(10px);
+}
+
+body {
+    margin-top: var(--esistenza-height);
+}
+
+.esistenze-top-bar-left,
+.esistenze-top-bar-right {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.esistenze-top-bar-menu,
+.esistenze-top-bar-contact {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+.esistenze-top-bar-menu li,
+.esistenze-top-bar-contact li {
+    margin: 0 14px;
+    display: flex;
+    align-items: center;
+}
+
+.esistenze-top-bar-menu li a,
+.esistenze-top-bar-contact li a {
+    color: var(--esistenze-text-color);
+    font-size: var(--esistenze-font-size);
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.3s ease;
+}
+
+.esistenze-top-bar-menu li a:hover,
+.esistenze-top-bar-contact li a:hover {
+    color: #eeeeee;
+}
+
+.esistenze-top-bar-contact li a i {
+    margin-right: 10px;
+    font-size: var(--esistenze-font-size);
+    transition: color 0.3s ease;
+}
+
+.esistenze-top-bar-contact li a:hover i {
+    color: #dddddd;
+}
+
+@media screen and (max-width: 768px) {
+    .esistenze-top-bar {
+        flex-direction: column;
+        padding: 10px 20px;
+        text-align: center;
+        height: auto;
+    }
+
+    .esistenze-top-bar-left,
+    .esistenze-top-bar-right {
+        flex-direction: column;
+        justify-content: center;
+        margin: 5px 0;
+        height: auto;
+    }
+
+    .esistenze-top-bar-menu li,
+    .esistenze-top-bar-contact li {
+        margin: 6px 10px;
+    }
+
+    .esistenze-top-bar-menu,
+    .esistenze-top-bar-contact {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
