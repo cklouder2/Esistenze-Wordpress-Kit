@@ -14,12 +14,7 @@ class EsistenzeQuickMenuCardsAjax {
         $this->init_hooks();
     }
     
-    private function get_version() {
-        return defined('ESISTENZE_WP_KIT_VERSION') ? ESISTENZE_WP_KIT_VERSION : '1.0.0';
-    }
-}
-
-?> init_hooks() {
+    private function init_hooks() {
         // Admin AJAX handlers
         add_action('wp_ajax_esistenze_save_card_group', array($this, 'save_card_group'));
         add_action('wp_ajax_esistenze_delete_card_group', array($this, 'delete_card_group'));
@@ -432,19 +427,19 @@ class EsistenzeQuickMenuCardsAjax {
     private function generate_card_preview($card) {
         $settings = get_option('esistenze_quick_menu_settings', EsistenzeQuickMenuCards::get_default_settings());
         
-        $html = '<div class="hizli-menu-wrapper preview-wrapper">';
-        $html .= '<div class="hizli-menu-kart">';
-        $html .= '<div class="hizli-menu-icerik">';
+        $html = '<div class="esistenze-quick-menu-wrapper preview-wrapper">';
+        $html .= '<div class="esistenze-quick-menu-kart">';
+        $html .= '<div class="esistenze-quick-menu-icerik">';
         
         if (!empty($card['img'])) {
             $html .= '<img src="' . esc_url($card['img']) . '" alt="' . esc_attr($card['title']) . '">';
         }
         
-        $html .= '<div class="hizli-menu-yazi">';
+        $html .= '<div class="esistenze-quick-menu-yazi">';
         $html .= '<h4>' . esc_html($card['title'] ?: 'Başlık') . '</h4>';
         $html .= '<p>' . esc_html($card['desc'] ?: 'Açıklama') . '</p>';
         $html .= '</div></div>';
-        $html .= '<div class="hizli-menu-buton">' . esc_html($settings['default_button_text']) . '</div>';
+        $html .= '<div class="esistenze-quick-menu-buton">' . esc_html($settings['default_button_text']) . '</div>';
         $html .= '</div></div>';
         
         return $html;
@@ -457,8 +452,8 @@ class EsistenzeQuickMenuCardsAjax {
             return '<p>Banner görünüm için görsel gereklidir.</p>';
         }
         
-        $html = '<div class="hizli-menu-banner-wrapper preview-wrapper">';
-        $html .= '<div class="hizli-menu-banner">';
+        $html = '<div class="esistenze-quick-menu-banner-wrapper preview-wrapper">';
+        $html .= '<div class="esistenze-quick-menu-banner">';
         $html .= '<div class="banner-img"><img src="' . esc_url($card['img']) . '" alt="' . esc_attr($card['title']) . '"></div>';
         $html .= '<div class="banner-text">';
         $html .= '<h4>' . esc_html($card['title'] ?: 'Başlık') . '</h4>';
@@ -487,4 +482,9 @@ class EsistenzeQuickMenuCardsAjax {
         return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     }
     
-    private function
+    private function get_version() {
+        return defined('ESISTENZE_WP_KIT_VERSION') ? ESISTENZE_WP_KIT_VERSION : '1.0.0';
+    }
+}
+
+?>

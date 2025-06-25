@@ -55,7 +55,7 @@ class EsistenzeQuickMenuCardsFrontend {
         $settings = get_option('esistenze_quick_menu_settings', EsistenzeQuickMenuCards::get_default_settings());
         $button_text = $settings['default_button_text'] ?? 'Detayları Gör';
         
-        $output = '<div class="hizli-menu-wrapper" data-group-id="' . $group_id . '">';
+        $output = '<div class="esistenze-quick-menu-wrapper" data-group-id="' . $group_id . '">';
         
         foreach ($group as $index => $kart) {
             $output .= $this->render_single_card($kart, $group_id, $index, $button_text, $settings);
@@ -83,7 +83,7 @@ class EsistenzeQuickMenuCardsFrontend {
         $settings = get_option('esistenze_quick_menu_settings', EsistenzeQuickMenuCards::get_default_settings());
         $button_text = $settings['banner_button_text'] ?? 'Ürünleri İncele';
         
-        $output = '<div class="hizli-menu-banner-wrapper" data-group-id="' . $group_id . '">';
+        $output = '<div class="esistenze-quick-menu-banner-wrapper" data-group-id="' . $group_id . '">';
         
         foreach ($group as $index => $kart) {
             if (empty($kart['img'])) continue; // Banner için görsel zorunlu
@@ -98,7 +98,7 @@ class EsistenzeQuickMenuCardsFrontend {
     
     private function render_single_card($kart, $group_id, $index, $button_text, $settings) {
         $has_url = !empty($kart['url']);
-        $card_class = 'hizli-menu-kart';
+        $card_class = 'esistenze-quick-menu-kart';
         $onclick = $has_url ? 'onclick="trackCardClick(' . $group_id . ', ' . $index . ')"' : '';
         
         $link_start = $has_url ? 
@@ -107,7 +107,7 @@ class EsistenzeQuickMenuCardsFrontend {
         $link_end = $has_url ? '</a>' : '</div>';
         
         $output = $link_start;
-        $output .= '<div class="hizli-menu-icerik">';
+        $output .= '<div class="esistenze-quick-menu-icerik">';
         
         // Görsel
         if (!empty($kart['img'])) {
@@ -116,13 +116,13 @@ class EsistenzeQuickMenuCardsFrontend {
         }
         
         // Metin içeriği
-        $output .= '<div class="hizli-menu-yazi">';
+        $output .= '<div class="esistenze-quick-menu-yazi">';
         $output .= '<h4>' . esc_html($kart['title'] ?? 'Başlıksız') . '</h4>';
         $output .= '<p>' . esc_html($kart['desc'] ?? '') . '</p>';
         $output .= '</div></div>';
         
         // Buton
-        $output .= '<div class="hizli-menu-buton">' . esc_html($button_text) . '</div>';
+        $output .= '<div class="esistenze-quick-menu-buton">' . esc_html($button_text) . '</div>';
         $output .= $link_end;
         
         return $output;
@@ -133,8 +133,8 @@ class EsistenzeQuickMenuCardsFrontend {
         $onclick = $has_url ? 'onclick="trackCardClick(' . $group_id . ', ' . $index . ')"' : '';
         
         $url_start = $has_url ? 
-            '<a href="' . esc_url($kart['url']) . '" class="hizli-menu-banner" target="_blank" ' . $onclick . '>' : 
-            '<div class="hizli-menu-banner">';
+            '<a href="' . esc_url($kart['url']) . '" class="esistenze-quick-menu-banner" target="_blank" ' . $onclick . '>' : 
+            '<div class="esistenze-quick-menu-banner">';
         $url_end = $has_url ? '</a>' : '</div>';
         
         $output = $url_start;
@@ -231,7 +231,7 @@ class EsistenzeQuickMenuCardsFrontend {
             });
             
             // Tüm kart wrapper'larını gözlemle
-            document.querySelectorAll('.hizli-menu-wrapper, .hizli-menu-banner-wrapper').forEach(function(wrapper) {
+            document.querySelectorAll('.esistenze-quick-menu-wrapper, .esistenze-quick-menu-banner-wrapper').forEach(function(wrapper) {
                 cardObserver.observe(wrapper);
             });
         }
@@ -330,7 +330,7 @@ class EsistenzeQuickMenuCardsFrontend {
         // Responsive ayarlar
         if (!empty($settings['mobile_columns'])) {
             $css .= '@media (max-width: 768px) {';
-            $css .= '.hizli-menu-wrapper { grid-template-columns: repeat(' . intval($settings['mobile_columns']) . ', 1fr); }';
+            $css .= '.esistenze-quick-menu-wrapper { grid-template-columns: repeat(' . intval($settings['mobile_columns']) . ', 1fr); }';
             $css .= '}';
         }
         

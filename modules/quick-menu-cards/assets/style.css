@@ -417,3 +417,116 @@
     font-size: 15px;
   }
 }
+
+/* === Geriye Uyumluluk için Eski Sınıflar === */
+.hizli-menu-wrapper {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 17px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.hizli-menu-kart {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  background: linear-gradient(to bottom, #ffffff, #f3f3f3);
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16);
+  padding: 24px 16px 72px;
+  position: relative;
+  text-decoration: none;
+  color: #222;
+  border: 1px solid #eaeaea;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  z-index: 99999;
+}
+
+.hizli-menu-kart:hover {
+  transform: translateY(-6px);
+  background: linear-gradient(to bottom, #ffffff, #eeeeee);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  text-decoration: none;
+}
+
+.hizli-menu-icerik img {
+  max-height: 220px;
+  max-width: 100%;
+  object-fit: contain;
+  margin: 0 auto 16px;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.hizli-menu-kart:hover .hizli-menu-icerik img {
+  transform: scale(1.05);
+}
+
+.hizli-menu-yazi h4 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111;
+  margin: 0 0 10px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.hizli-menu-yazi p {
+  font-size: 0.95rem;
+  color: #666;
+  margin: 0 0 16px;
+  min-height: 48px;
+  text-align: center;
+}
+
+.hizli-menu-buton {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, #5ea226, #76c235);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 14px 0;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  transition: background 0.2s ease;
+}
+
+.hizli-menu-buton:hover {
+  background: #4d8f1d;
+  cursor: pointer;
+}
+
+.hizli-menu-banner-wrapper {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+  margin: 40px 0;
+}
+
+.hizli-menu-banner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  background: linear-gradient(to right, #ffffff, #f6f6f6);
+  border-radius: 24px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  padding: 24px 12px;
+  min-height: 129px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+}
+
+.hizli-menu-banner:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.20);
+  text-decoration: none;
+}
