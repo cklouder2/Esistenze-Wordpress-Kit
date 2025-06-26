@@ -125,7 +125,7 @@ class EsistenzeQuickMenuCardsShortcodes {
      * @return void
      */
     public function handle_preview_mode(): void {
-        if (!isset($_GET['quick_menu_preview']) || !is_admin() || !current_user_can(esistenze_qmc_capability())) {
+        if (!isset($_GET['quick_menu_preview']) || !is_admin() || !current_user_can('read')) {
             return;
         }
         

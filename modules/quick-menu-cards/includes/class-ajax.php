@@ -43,7 +43,7 @@ class EsistenzeQuickMenuCardsAjax {
      */
     public function save_card_group(): void {
         // Nonce ve yetki kontrolü
-        if (!$this->verify_nonce() || !current_user_can(esistenze_qmc_capability())) {
+        if (!$this->verify_nonce() || !current_user_can('read')) {
             wp_send_json_error('Yetkisiz erişim.');
         }
         
@@ -94,7 +94,7 @@ class EsistenzeQuickMenuCardsAjax {
      * @return void
      */
     public function delete_card_group(): void {
-        if (!$this->verify_nonce() || !current_user_can(esistenze_qmc_capability())) {
+        if (!$this->verify_nonce() || !current_user_can('read')) {
             wp_send_json_error('Yetkisiz erişim.');
         }
         
@@ -134,7 +134,7 @@ class EsistenzeQuickMenuCardsAjax {
      * @return void
      */
     public function duplicate_card_group(): void {
-        if (!$this->verify_nonce() || !current_user_can(esistenze_qmc_capability())) {
+        if (!$this->verify_nonce() || !current_user_can('read')) {
             wp_send_json_error('Yetkisiz erişim.');
         }
         
@@ -184,7 +184,7 @@ class EsistenzeQuickMenuCardsAjax {
      * @return void
      */
     public function export_groups(): void {
-        if (!$this->verify_nonce() || !current_user_can(esistenze_qmc_capability())) {
+        if (!$this->verify_nonce() || !current_user_can('read')) {
             wp_send_json_error('Yetkisiz erişim.');
         }
         
@@ -212,7 +212,7 @@ class EsistenzeQuickMenuCardsAjax {
      * @return void
      */
     public function import_groups(): void {
-        if (!$this->verify_nonce() || !current_user_can(esistenze_qmc_capability())) {
+        if (!$this->verify_nonce() || !current_user_can('read')) {
             wp_send_json_error('Yetkisiz erişim.');
         }
         
