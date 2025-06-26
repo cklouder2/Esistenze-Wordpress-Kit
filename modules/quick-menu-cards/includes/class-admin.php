@@ -59,7 +59,7 @@ class EsistenzeQuickMenuCardsAdmin {
             'Kart Grupları',
             'Kart Grupları',
             $this->capability,
-            'esistenza-quick-menu',
+            'esistenze-quick-menu',
             array($this, 'admin_page')
         );
         
@@ -228,7 +228,7 @@ class EsistenzeQuickMenuCardsAdmin {
         echo '<nav class="nav-tab-wrapper wp-clearfix">';
         foreach ($tabs as $tab_key => $tab_data) {
             $class = ($current_tab === $tab_key) ? 'nav-tab nav-tab-active' : 'nav-tab';
-            $url = admin_url('admin.php?page=esistenza-quick-menu&tab=' . $tab_key);
+            $url = admin_url('admin.php?page=esistenze-quick-menu&tab=' . $tab_key);
             
             if ($tab_key === 'edit' && isset($_GET['action'])) {
                 $url .= '&action=' . sanitize_text_field($_GET['action']);
@@ -286,7 +286,7 @@ class EsistenzeQuickMenuCardsAdmin {
             $group_data = array();
         } else {
             if ($group_id < 0) {
-                wp_redirect(admin_url('admin.php?page=esistenza-quick-menu'));
+                wp_redirect(admin_url('admin.php?page=esistenze-quick-menu'));
                 exit;
             }
             
@@ -358,7 +358,7 @@ class EsistenzeQuickMenuCardsAdmin {
                     'action' => $group_id === -1 ? 'new' : 'edit',
                     'edit_group' => $group_id !== -1 ? $group_id : null,
                     'error' => urlencode(implode(', ', $validation))
-                ), admin_url('admin.php?page=esistenza-quick-menu')));
+                ), admin_url('admin.php?page=esistenze-quick-menu')));
                 exit;
             }
             
@@ -386,14 +386,14 @@ class EsistenzeQuickMenuCardsAdmin {
                 'tab' => 'groups',
                 'success' => 'saved',
                 'group_id' => $new_group_id
-            ), admin_url('admin.php?page=esistenza-quick-menu')));
+            ), admin_url('admin.php?page=esistenze-quick-menu')));
         } else {
             wp_redirect(add_query_arg(array(
                 'tab' => 'edit',
                 'action' => $group_id === -1 ? 'new' : 'edit',
                 'edit_group' => $group_id !== -1 ? $group_id : null,
                 'error' => 'save_failed'
-            ), admin_url('admin.php?page=esistenza-quick-menu')));
+            ), admin_url('admin.php?page=esistenze-quick-menu')));
         }
         exit;
     }
@@ -421,11 +421,11 @@ class EsistenzeQuickMenuCardsAdmin {
             
             wp_redirect(add_query_arg(array(
                 'success' => 'deleted'
-            ), admin_url('admin.php?page=esistenza-quick-menu')));
+            ), admin_url('admin.php?page=esistenze-quick-menu')));
         } else {
             wp_redirect(add_query_arg(array(
                 'error' => 'group_not_found'
-            ), admin_url('admin.php?page=esistenza-quick-menu')));
+            ), admin_url('admin.php?page=esistenze-quick-menu')));
         }
         exit;
     }
@@ -557,7 +557,7 @@ class EsistenzeQuickMenuCardsAdmin {
         echo '<li><strong>' . number_format($total_clicks) . '</strong> tıklama</li>';
         echo '<li><strong>%' . $ctr . '</strong> CTR</li>';
         echo '</ul>';
-        echo '<p><a href="' . admin_url('admin.php?page=esistenza-quick-menu-analytics') . '">Detayları Görüntüle</a></p>';
+        echo '<p><a href="' . admin_url('admin.php?page=esistenze-quick-menu-analytics') . '">Detayları Görüntüle</a></p>';
         echo '</div>';
     }
     
@@ -878,7 +878,7 @@ class EsistenzeQuickMenuCardsAdmin {
         }
         
         $html = '<div class="esistenze-quick-menu-banner-wrapper preview-wrapper" style="max-width: 500px;">';
-        $html .= '<div class="esistenza-quick-menu-banner">';
+        $html .= '<div class="esistenze-quick-menu-banner">';
         $html .= '<div class="banner-img" style="width: 80px; height: 80px;"><img src="' . esc_url($card['img']) . '" alt="' . esc_attr($card['title']) . '" style="max-width: 100%; max-height: 100%; object-fit: contain;"></div>';
         $html .= '<div class="banner-text">';
         $html .= '<h4>' . esc_html($card['title'] ?: 'Başlık') . '</h4>';
