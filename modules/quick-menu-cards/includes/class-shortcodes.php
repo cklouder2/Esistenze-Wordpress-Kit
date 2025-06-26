@@ -111,7 +111,7 @@ class EsistenzeQuickMenuCardsShortcodes {
      * Handle preview mode
      */
     public function handle_preview_mode() {
-        if (!isset($_GET['quick_menu_preview']) || !is_admin() || !current_user_can('manage_options')) {
+        if (!isset($_GET['quick_menu_preview']) || !is_admin() || !current_user_can(esistenze_qmc_capability())) {
             return;
         }
         
