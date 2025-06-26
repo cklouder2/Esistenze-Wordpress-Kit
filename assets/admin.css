@@ -153,13 +153,15 @@
     background: #F57C00 !important;
 }
 
-.delete-button {
+.delete-button,
+.delete-btn {
     background: #f44336 !important;
     color: white !important;
     border-color: #f44336 !important;
 }
 
-.delete-button:hover {
+.delete-button:hover,
+.delete-btn:hover {
     background: #d32f2f !important;
 }
 
