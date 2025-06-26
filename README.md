@@ -1,5 +1,3 @@
-Tabii! Aşağıda, merge conflict işaretlerini kaldırarak ve içeriği mantıklı bir şekilde birleştirerek düzenlenmiş metni paylaşıyorum. Metin, WordPress eklentisi dokümantasyonu için uygun bir şekilde Markdown formatında yapılandırılmıştır. İşte nihai hali:
-
 Esistenze WordPress Kit
 This package provides several feature-rich modules for WooCommerce based sites. Each module resides in the modules/ directory and is loaded by esistenze_main_plugin.php.
 
