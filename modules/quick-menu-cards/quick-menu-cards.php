@@ -8,6 +8,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!function_exists('esistenze_qmc_capability')) {
+    function esistenze_qmc_capability() {
+        return apply_filters('esistenze_quick_menu_capability', 'manage_options');
+    }
+}
+
 class EsistenzeQuickMenuCards {
     
     private static $instance = null;
