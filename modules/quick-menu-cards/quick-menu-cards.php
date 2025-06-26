@@ -1,257 +1,454 @@
 <?php
 /*
- * Quick Menu Cards Module - Ana Dosya (Düzeltilmiş)
- * Part of Esistenze WordPress Kit
- */
+Plugin Name: Esistenze WordPress Kit
+Description: Kapsamlı WordPress eklenti paketi - Smart Product Buttons, Category Styler, Custom Topbar, Hızlı Menü Kartları ve Price Modifier modüllerini içerir.
+Version: 1.0.1
+Author: Cem Karabulut - Esistenze
+Text Domain: esistenze-wp-kit
+Domain Path: /languages
+*/
 
 if (!defined('ABSPATH')) {
-    exit;
+    exit; // Direct access prevention
 }
 
-if (!function_exists('esistenze_qmc_capability')) {
-    function esistenze_qmc_capability() {
-        // Daha esnek yetkilendirme sistemi
-        $capability = apply_filters('esistenze_quick_menu_capability', 'edit_pages');
-        
-        // Fallback kontrolleri
-        if (!current_user_can($capability)) {
-            if (current_user_can('manage_options')) {
-                return 'manage_options';
-            } elseif (current_user_can('edit_pages')) {
-                return 'edit_pages';
-            } elseif (current_user_can('edit_posts')) {
-                return 'edit_posts';
-            }
-        }
-        
-        return $capability;
-    }
+// Plugin constants. Make sure they are defined only once to avoid warnings
+if (!defined('ESISTENZE_WP_KIT_VERSION')) {
+    define('ESISTENZE_WP_KIT_VERSION', '1.0.1');
+}
+if (!defined('ESISTENZE_WP_KIT_PATH')) {
+    define('ESISTENZE_WP_KIT_PATH', plugin_dir_path(__FILE__));
+}
+if (!defined('ESISTENZE_WP_KIT_URL')) {
+    define('ESISTENZE_WP_KIT_URL', plugin_dir_url(__FILE__));
 }
 
-class EsistenzeQuickMenuCards {
-    
+// Prevent class redeclaration if the plugin is included twice
+if (!class_exists('EsistenzeWPKit')) {
+class EsistenzeWPKit {
+
     private static $instance = null;
-    private $module_path;
-    private $module_url;
-    private $capability;
-    
+    private $loaded_modules = array();
+
     public static function getInstance() {
         if (self::$instance === null) {
             self::$instance = new self();
         }
         return self::$instance;
     }
-    
+
     private function __construct() {
-        $this->module_path = defined('ESISTENZE_WP_KIT_PATH') 
-            ? ESISTENZE_WP_KIT_PATH . 'modules/quick-menu-cards/' 
-            : plugin_dir_path(__FILE__);
-            
-        $this->module_url = defined('ESISTENZE_WP_KIT_URL') 
-            ? ESISTENZE_WP_KIT_URL . 'modules/quick-menu-cards/' 
-            : plugin_dir_url(__FILE__);
-        
-        // Hook'ları başlat
-        add_action('init', array($this, 'early_init'));
-        add_action('admin_init', array($this, 'admin_init'));
-        add_action('wp_loaded', array($this, 'late_init'));
+        // Error logging için hook ekleyelim
+        add_action('admin_notices', array($this, 'display_admin_notices'));
+
+        // Register activation and deactivation hooks
+        register_activation_hook(__FILE__, array($this, 'activate'));
+        register_deactivation_hook(__FILE__, array($this, 'deactivate'));
+
+        // Core functionality
+        add_action('plugins_loaded', array($this, 'init'));
     }
-    
-    public function early_init() {
-        // Capability'yi erkenden belirle
-        $this->capability = esistenze_qmc_capability();
-        
-        // Shortcode'ları kaydet
-        $this->register_shortcodes();
+
+    public function init() {
+        // Load modules in a safe way
+        $this->safe_load_modules();
+
+        // Admin menu
+        add_action('admin_menu', array($this, 'admin_menu'));
+
+        // Enqueue admin assets
+        add_action('admin_enqueue_scripts', array($this, 'admin_assets'));
     }
-    
-    public function admin_init() {
-        // Admin sınıfını yükle ve başlat
-        if (is_admin() && current_user_can($this->capability)) {
-            $this->load_admin_classes();
-        }
-    }
-    
-    public function late_init() {
-        // Frontend ve AJAX handler'ları yükle
-        $this->load_dependencies();
-        $this->schedule_cleanup();
-    }
-    
-    private function load_dependencies() {
-        // Frontend sınıfını yükle
-        if (file_exists($this->module_path . 'includes/class-frontend.php')) {
-            require_once $this->module_path . 'includes/class-frontend.php';
-            new EsistenzeQuickMenuCardsFrontend($this->module_url);
-        }
-        
-        // AJAX handler'ları yükle
-        if (file_exists($this->module_path . 'includes/class-ajax.php')) {
-            require_once $this->module_path . 'includes/class-ajax.php';
-            new EsistenzeQuickMenuCardsAjax();
-        }
-    }
-    
-    private function load_admin_classes() {
-        if (file_exists($this->module_path . 'includes/class-admin.php')) {
-            require_once $this->module_path . 'includes/class-admin.php';
-            new EsistenzeQuickMenuCardsAdmin($this->module_path, $this->module_url);
-        }
-    }
-    
-    private function register_shortcodes() {
-        add_shortcode('quick_menu_cards', array($this, 'render_shortcode'));
-        add_shortcode('quick_menu_banner', array($this, 'render_banner_shortcode'));
-        
-        // Geriye uyumluluk için eski shortcode'lar
-        add_shortcode('hizli_menu', array($this, 'render_shortcode'));
-        add_shortcode('hizli_menu_banner', array($this, 'render_banner_shortcode'));
-    }
-    
-    public function render_shortcode($atts) {
-        if (!class_exists('EsistenzeQuickMenuCardsFrontend')) {
-            return '<p>Quick Menu Cards modülü yüklenemedi.</p>';
-        }
-        
-        $frontend = new EsistenzeQuickMenuCardsFrontend($this->module_url);
-        return $frontend->render_cards_grid($atts);
-    }
-    
-    public function render_banner_shortcode($atts) {
-        if (!class_exists('EsistenzeQuickMenuCardsFrontend')) {
-            return '<p>Quick Menu Cards modülü yüklenemedi.</p>';
-        }
-        
-        $frontend = new EsistenzeQuickMenuCardsFrontend($this->module_url);
-        return $frontend->render_banner_layout($atts);
-    }
-    
-    private function schedule_cleanup() {
-        if (!wp_next_scheduled('esistenze_quick_menu_cleanup')) {
-            wp_schedule_event(time(), 'weekly', 'esistenze_quick_menu_cleanup');
-        }
-        add_action('esistenze_quick_menu_cleanup', array($this, 'cleanup_old_data'));
-    }
-    
-    public function cleanup_old_data() {
-        // Eski analytics verilerini temizle (90 günden eski)
-        $retention_days = 90;
-        $cutoff_date = date('Y-m-d H:i:s', strtotime("-{$retention_days} days"));
-        
-        // Cleanup işlemleri burada yapılabilir
-        do_action('esistenze_quick_menu_cleanup', $cutoff_date);
-    }
-    
-    // Utility methods
-    public function get_module_path() {
-        return $this->module_path;
-    }
-    
-    public function get_module_url() {
-        return $this->module_url;
-    }
-    
-    public function get_version() {
-        return defined('ESISTENZE_WP_KIT_VERSION') ? ESISTENZE_WP_KIT_VERSION : '1.0.0';
-    }
-    
-    public function get_capability() {
-        return $this->capability;
-    }
-    
-    public static function get_default_settings() {
-        return array(
-            'default_button_text' => 'Detayları Gör',
-            'banner_button_text' => 'Ürünleri İncele',
-            'enable_analytics' => true,
-            'enable_lazy_loading' => true,
-            'enable_schema_markup' => true,
-            'cache_duration' => 3600,
-            'mobile_columns' => 2,
-            'max_cards_per_group' => 20,
-            'auto_save' => true,
-            'debug_mode' => false
-        );
-    }
-    
-    // Activation hook
-    public static function activate() {
-        // Varsayılan grup oluştur
-        $kartlar = get_option('esistenze_quick_menu_kartlari', array());
-        if (empty($kartlar)) {
-            $default_group = array(
-                array(
-                    'title' => 'Örnek Kart 1',
-                    'desc' => 'Bu bir örnek kart açıklamasıdır.',
-                    'img' => '',
-                    'url' => '#',
-                    'enabled' => true,
-                    'featured' => false,
-                    'new_tab' => false,
-                    'order' => 0,
-                    'created_at' => current_time('mysql'),
-                    'updated_at' => current_time('mysql')
-                ),
-                array(
-                    'title' => 'Örnek Kart 2',
-                    'desc' => 'Bu ikinci örnek kart açıklamasıdır.',
-                    'img' => '',
-                    'url' => '#',
-                    'enabled' => true,
-                    'featured' => false,
-                    'new_tab' => false,
-                    'order' => 1,
-                    'created_at' => current_time('mysql'),
-                    'updated_at' => current_time('mysql')
-                )
+
+    private function safe_load_modules() {
+        try {
+            // Crash sorununu önlemek için modüller güvenli şekilde yüklensin
+            $modules = array(
+                'smart-product-buttons' => 'EsistenzeSmartButtons',
+                'category-styler'      => 'EsistenzeCategoryStyler',
+                'custom-topbar'        => 'EsistenzeCustomTopbar',
+                'quick-menu-cards'     => 'EsistenzeQuickMenuCards',
+                'price-modifier'       => 'EsistenzePriceModifier'
             );
-            
-            update_option('esistenze_quick_menu_kartlari', array($default_group));
-        }
-        
-        // Varsayılan ayarlar
-        $settings = get_option('esistenze_quick_menu_settings', array());
-        if (empty($settings)) {
-            update_option('esistenze_quick_menu_settings', self::get_default_settings());
-        }
-        
-        // Analytics tablosu oluştur
-        $analytics = get_option('esistenze_quick_menu_analytics', array());
-        if (empty($analytics)) {
-            update_option('esistenze_quick_menu_analytics', array(
-                'total_views' => 0,
-                'total_clicks' => 0,
-                'group_views' => array(),
-                'group_clicks' => array(),
-                'card_clicks' => array(),
-                'last_view' => '',
-                'last_click' => '',
-                'click_details' => array()
-            ));
+
+            foreach ($modules as $module_folder => $class_name) {
+                $module_file = ESISTENZE_WP_KIT_PATH . 'modules/' . $module_folder . '/' . $module_folder . '.php';
+
+                if (file_exists($module_file)) {
+                    include_once $module_file;
+
+                    // Check if class exists before initializing
+                    if (class_exists($class_name)) {
+                        // Add to loaded modules for debugging
+                        $this->loaded_modules[$module_folder] = true;
+                    } else {
+                        // Log error if class doesn't exist
+                        $this->loaded_modules[$module_folder] = 'Class not found: ' . $class_name;
+                    }
+                } else {
+                    // Log error if file doesn't exist
+                    $this->loaded_modules[$module_folder] = 'File not found: ' . $module_file;
+                }
+            }
+        } catch (Exception $e) {
+            // Log exception for debugging
+            $this->loaded_modules['error'] = $e->getMessage();
         }
     }
-    
-    // Deactivation hook
-    public static function deactivate() {
-        wp_clear_scheduled_hook('esistenze_quick_menu_cleanup');
+
+    public function display_admin_notices() {
+        // Show notices for module loading errors
+        $error_count = 0;
+        $error_messages = array();
+
+        foreach ($this->loaded_modules as $module => $status) {
+            if ($status !== true) {
+                $error_count++;
+                $error_messages[] = $module . ': ' . $status;
+            }
+        }
+
+        if ($error_count > 0) {
+            echo '<div class="notice notice-error is-dismissible">';
+            echo '<p><strong>Esistenze WordPress Kit:</strong> ' . $error_count . ' modül yüklenemedi.</p>';
+            echo '<ul>';
+            foreach ($error_messages as $message) {
+                echo '<li>' . esc_html($message) . '</li>';
+            }
+            echo '</ul>';
+            echo '<p>Eklentiyi güncelleyin veya tekrar yükleyin. Sorun devam ederse destek ekibiyle iletişime geçin.</p>';
+            echo '</div>';
+        }
     }
-    
-    // Debug fonksiyonu
-    public function debug_info() {
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('Quick Menu Cards Debug: Capability = ' . $this->capability);
-            error_log('Quick Menu Cards Debug: Current User Can = ' . (current_user_can($this->capability) ? 'YES' : 'NO'));
-            error_log('Quick Menu Cards Debug: Is Admin = ' . (is_admin() ? 'YES' : 'NO'));
+
+    public function admin_menu() {
+        // Main menu page
+        add_menu_page(
+            'Esistenze WP Kit',
+            'Esistenze Kit',
+            'manage_options',
+            'esistenze-wp-kit',
+            array($this, 'admin_dashboard'),
+            'dashicons-admin-tools',
+            30
+        );
+
+        // Dashboard submenu
+        add_submenu_page(
+            'esistenze-wp-kit',
+            'Dashboard',
+            'Dashboard',
+            'manage_options',
+            'esistenze-wp-kit',
+            array($this, 'admin_dashboard')
+        );
+
+        // Module submenus - only if module classes exist
+        if (class_exists('EsistenzeSmartButtons') && method_exists('EsistenzeSmartButtons', 'admin_page')) {
+            add_submenu_page(
+                'esistenze-wp-kit',
+                'Smart Buttons',
+                'Smart Buttons',
+                'manage_options',
+                'esistenze-smart-buttons',
+                array('EsistenzeSmartButtons', 'admin_page')
+            );
+        }
+
+        if (class_exists('EsistenzeCategoryStyler') && method_exists('EsistenzeCategoryStyler', 'admin_page')) {
+            add_submenu_page(
+                'esistenze-wp-kit',
+                'Category Styler',
+                'Category Styler',
+                'manage_options',
+                'esistenze-category-styler',
+                array('EsistenzeCategoryStyler', 'admin_page')
+            );
+        }
+
+        if (class_exists('EsistenzeCustomTopbar') && method_exists('EsistenzeCustomTopbar', 'admin_page')) {
+            add_submenu_page(
+                'esistenze-wp-kit',
+                'Custom Topbar',
+                'Custom Topbar',
+                'manage_options',
+                'esistenze-custom-topbar',
+                array('EsistenzeCustomTopbar', 'admin_page')
+            );
+        }
+
+        if (class_exists('EsistenzeQuickMenuCards') && method_exists('EsistenzeQuickMenuCards', 'admin_page')) {
+            add_submenu_page(
+                'esistenze-wp-kit',
+                'Quick Menu Cards',
+                'Quick Menu Cards',
+                esistenze_qmc_capability(),
+                'esistenze-quick-menu',
+                array('EsistenzeQuickMenuCards', 'admin_page')
+            );
+        }
+
+        if (class_exists('EsistenzePriceModifier') && method_exists('EsistenzePriceModifier', 'admin_page')) {
+            add_submenu_page(
+                'esistenze-wp-kit',
+                'Price Modifier',
+                'Price Modifier',
+                'manage_options',
+                'esistenze-price-modifier',
+                array('EsistenzePriceModifier', 'admin_page')
+            );
+        }
+    }
+    public function admin_dashboard() {
+        ?>
+        <div class="wrap esistenze-dashboard">
+            <h1>Esistenze WordPress Kit Dashboard</h1>
+
+            <div class="esistenze-welcome-panel">
+                <h2>Hoş Geldiniz!</h2>
+                <p>Esistenze WordPress Kit, web sitenizi güçlendirmek için tasarlanmış 5 farklı modülü içerir.</p>
+                <p>Version: <?php echo ESISTENZE_WP_KIT_VERSION; ?></p>
+            </div>
+
+            <div class="esistenze-modules-grid">
+                <div class="module-card">
+                    <h3><span class="dashicons dashicons-button"></span> Smart Product Buttons</h3>
+                    <p>WooCommerce ürün sayfalarında özelleştirilebilir, animasyonlu butonlar ekler.</p>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-smart-buttons'); ?>" class="button button-primary">Ayarlar</a>
+                    <div class="module-status <?php echo (isset($this->loaded_modules['smart-product-buttons']) && $this->loaded_modules['smart-product-buttons'] === true) ? 'active' : 'inactive'; ?>">
+                        <?php echo (isset($this->loaded_modules['smart-product-buttons']) && $this->loaded_modules['smart-product-buttons'] === true) ? 'Aktif' : 'Devre Dışı'; ?>
+                    </div>
+                </div>
+
+                <div class="module-card">
+                    <h3><span class="dashicons dashicons-category"></span> Category Styler</h3>
+                    <p>WooCommerce kategorilerini modern ve lüks bir görünümle stilize eder.</p>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-category-styler'); ?>" class="button button-primary">Ayarlar</a>
+                    <div class="module-status <?php echo (isset($this->loaded_modules['category-styler']) && $this->loaded_modules['category-styler'] === true) ? 'active' : 'inactive'; ?>">
+                        <?php echo (isset($this->loaded_modules['category-styler']) && $this->loaded_modules['category-styler'] === true) ? 'Aktif' : 'Devre Dışı'; ?>
+                    </div>
+                </div>
+
+                <div class="module-card">
+                    <h3><span class="dashicons dashicons-admin-customizer"></span> Custom Topbar</h3>
+                    <p>Site üstüne özelleştirilebilir menü ve iletişim bilgileri çubuğu ekler.</p>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-custom-topbar'); ?>" class="button button-primary">Ayarlar</a>
+                    <div class="module-status <?php echo (isset($this->loaded_modules['custom-topbar']) && $this->loaded_modules['custom-topbar'] === true) ? 'active' : 'inactive'; ?>">
+                        <?php echo (isset($this->loaded_modules['custom-topbar']) && $this->loaded_modules['custom-topbar'] === true) ? 'Aktif' : 'Devre Dışı'; ?>
+                    </div>
+                </div>
+
+                <div class="module-card">
+                    <h3><span class="dashicons dashicons-grid-view"></span> Quick Menu Cards</h3>
+                    <p>Görsel, başlık ve bağlantı içeren modern menü kartları oluşturur.</p>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-quick-menu'); ?>" class="button button-primary">Ayarlar</a>
+                    <div class="module-status <?php echo (isset($this->loaded_modules['quick-menu-cards']) && $this->loaded_modules['quick-menu-cards'] === true) ? 'active' : 'inactive'; ?>">
+                        <?php echo (isset($this->loaded_modules['quick-menu-cards']) && $this->loaded_modules['quick-menu-cards'] === true) ? 'Aktif' : 'Devre Dışı'; ?>
+                    </div>
+                </div>
+
+                <div class="module-card">
+                    <h3><span class="dashicons dashicons-tag"></span> Price Modifier</h3>
+                    <p>WooCommerce ürün fiyatlarına özel notlar ve stiller ekler.</p>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-price-modifier'); ?>" class="button button-primary">Ayarlar</a>
+                    <div class="module-status <?php echo (isset($this->loaded_modules['price-modifier']) && $this->loaded_modules['price-modifier'] === true) ? 'active' : 'inactive'; ?>">
+                        <?php echo (isset($this->loaded_modules['price-modifier']) && $this->loaded_modules['price-modifier'] === true) ? 'Aktif' : 'Devre Dışı'; ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="esistenze-info-panel">
+                <h3>Kısa Kodlar ve Kullanım</h3>
+                <div class="shortcode-list">
+                    <code>[display_categories]</code> - Stilize edilmiş kategorileri gösterir<br>
+                    <code>[hizli_menu id="0"]</code> - Hızlı menü kartlarını ızgara görünümde gösterir<br>
+                    <code>[hizli_menu_banner id="0"]</code> - Hızlı menü kartlarını banner görünümde gösterir
+                </div>
+            </div>
+
+            <div class="esistenze-tools-panel">
+                <h3>Yardımcı Araçlar</h3>
+                <div class="tools-buttons">
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-wp-kit&action=reset_cache'); ?>" class="button">Önbelleği Temizle</a>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-wp-kit&action=system_check'); ?>" class="button">Sistem Kontrolü</a>
+                </div>
+            </div>
+        </div>
+
+        <style>
+        .esistenze-dashboard {
+            background: #f5f5f5;
+            padding: 20px;
+            max-width: 1400px;
+        }
+
+        .esistenze-welcome-panel {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 4px solid #4CAF50;
+        }
+
+        .esistenze-modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .module-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 4px solid #4CAF50;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+
+        .module-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        .module-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+
+        .module-card .dashicons {
+            color: #4CAF50;
+            margin-right: 8px;
+            font-size: 20px;
+        }
+
+        .module-card p {
+            color: #666;
+            line-height: 1.6;
+            margin: 10px 0 15px;
+        }
+
+        .esistenze-info-panel, .esistenze-tools-panel {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .esistenze-info-panel {
+            border-left: 4px solid #2196F3;
+        }
+
+        .esistenze-tools-panel {
+            border-left: 4px solid #FF9800;
+        }
+
+        .shortcode-list {
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            line-height: 1.8;
+        }
+
+        .shortcode-list code {
+            background: #4CAF50;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 3px;
+            margin-right: 10px;
+            font-weight: 600;
+        }
+
+        .tools-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .module-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .module-status.active {
+            background: #e8f5e8;
+            color: #388e3c;
+        }
+
+        .module-status.inactive {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+        </style>
+        <?php
+    }
+
+    public function admin_assets($hook) {
+        if (strpos($hook, 'esistenze') !== false) {
+            wp_enqueue_style('esistenze-admin-style', ESISTENZE_WP_KIT_URL . 'assets/admin.css', array(), ESISTENZE_WP_KIT_VERSION);
+            wp_enqueue_script('esistenze-admin-script', ESISTENZE_WP_KIT_URL . 'assets/admin.js', array('jquery', 'jquery-ui-sortable'), ESISTENZE_WP_KIT_VERSION, true);
+        }
+    }
+    public function activate() {
+        // Activation tasks
+        flush_rewrite_rules();
+
+        // Set default options
+        $default_options = array(
+            'esistenze_kit_version' => ESISTENZE_WP_KIT_VERSION,
+            'smart_buttons_enabled' => true,
+            'category_styler_enabled' => true,
+            'custom_topbar_enabled' => true,
+            'quick_menu_enabled'    => true,
+            'price_modifier_enabled'=> true
+        );
+
+        foreach ($default_options as $key => $value) {
+            if (get_option($key) === false) {
+                add_option($key, $value);
+            }
+        }
+
+        // Create log directory
+        $log_dir = ESISTENZE_WP_KIT_PATH . 'logs';
+        if (!file_exists($log_dir)) {
+            wp_mkdir_p($log_dir);
+        }
+
+        // Add activation log
+        $this->log_message('Plugin activated: ' . ESISTENZE_WP_KIT_VERSION);
+    }
+
+    public function deactivate() {
+        // Deactivation tasks
+        flush_rewrite_rules();
+
+        // Add deactivation log
+        $this->log_message('Plugin deactivated: ' . ESISTENZE_WP_KIT_VERSION);
+    }
+
+    private function log_message($message) {
+        $log_file = ESISTENZE_WP_KIT_PATH . 'logs/plugin.log';
+        $time = current_time('mysql');
+        $log_entry = sprintf("[%s] %s\n", $time, $message);
+
+        // Log to file if we can
+        if (is_writable(dirname($log_file))) {
+            file_put_contents($log_file, $log_entry, FILE_APPEND);
         }
     }
 }
 
-// Initialize
-add_action('plugins_loaded', function() {
-    EsistenzeQuickMenuCards::getInstance();
-}, 10);
-
-// Hooks
-register_activation_hook(__FILE__, array('EsistenzeQuickMenuCards', 'activate'));
-register_deactivation_hook(__FILE__, array('EsistenzeQuickMenuCards', 'deactivate'));
-
+// Initialize the plugin
+EsistenzeWPKit::getInstance();
+}
