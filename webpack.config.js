@@ -8,13 +8,6 @@ module.exports = (env, argv) => {
     entry: {
       'admin': './assets/admin.js',
       'admin-style': './assets/admin.css',
-      'quick-menu-admin': './modules/quick-menu-cards/assets/admin.js',
-      'quick-menu-admin-edit': './modules/quick-menu-cards/assets/admin-edit.js',
-      'quick-menu-admin-advanced': './modules/quick-menu-cards/assets/admin-edit-advanced.js',
-      'quick-menu-admin-bulk': './modules/quick-menu-cards/assets/admin-edit-bulk.js',
-      'quick-menu-admin-tools': './modules/quick-menu-cards/assets/admin-edit-tools.js',
-      'quick-menu-style': './modules/quick-menu-cards/assets/style.css',
-      'quick-menu-admin-style': './modules/quick-menu-cards/assets/admin.css',
       'smart-buttons-script': './modules/smart-product-buttons/assets/script.js',
       'smart-buttons-style': './modules/smart-product-buttons/assets/style.css',
       'category-styler-style': './modules/category-styler/assets/style.css',

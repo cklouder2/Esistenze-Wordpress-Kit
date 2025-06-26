@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Esistenze WordPress Kit
-Description: Kapsamlı WordPress eklenti paketi - Smart Product Buttons, Category Styler, Custom Topbar, Hızlı Menü Kartları ve Price Modifier modüllerini içerir.
+Description: Kapsamlı WordPress eklenti paketi - Smart Product Buttons, Category Styler, Custom Topbar ve Price Modifier modüllerini içerir.
 Version: 2.0.0
 Author: Cem Karabulut - Esistenze
 Text Domain: esistenze-wp-kit
@@ -66,14 +66,6 @@ class EsistenzeWPKit {
         // Load migration handler
         $this->load_migration_handler();
         
-        // Load error logger for debugging
-        if (is_admin()) {
-            $error_logger_file = plugin_dir_path(__FILE__) . 'qmc-error-logger.php';
-            if (file_exists($error_logger_file)) {
-                require_once $error_logger_file;
-            }
-        }
-        
         // Load modules in a safe way
         $this->safe_load_modules();
         
@@ -102,7 +94,6 @@ class EsistenzeWPKit {
                 'smart-product-buttons' => 'EsistenzeSmartButtons',
                 'category-styler' => 'EsistenzeCategoryStyler',
                 'custom-topbar' => 'EsistenzeCustomTopbar',
-                'quick-menu-cards' => 'EsistenzeQuickMenuCards',
                 'price-modifier' => 'EsistenzePriceModifier'
             );
 
@@ -110,9 +101,6 @@ class EsistenzeWPKit {
             $module_folders = glob($modules_path . '*', GLOB_ONLYDIR);
             
             if (empty($module_folders)) {
-                if (function_exists('qmc_log_error')) {
-                    qmc_log_error("Hiç modül klasörü bulunamadı.", array('path' => $modules_path));
-                }
                 return;
             }
 
@@ -133,16 +121,6 @@ class EsistenzeWPKit {
                     $this->loaded_modules[$module_key] = 'Klasör bulunamadı (aranan: ' . $module_key . ')';
                     continue;
                 }
-
-                // Debug log
-                if (function_exists('qmc_log_error')) {
-                    qmc_log_error("Modül yükleme denemesi: $module_key", array(
-                        'expected_file' => $module_file,
-                        'file_exists' => file_exists($module_file),
-                        'plugin_dir' => $plugin_dir,
-                        'actual_folder' => $actual_folder
-                    ));
-                }
                 
                 if (file_exists($module_file)) {
                     include_once $module_file;
@@ -151,41 +129,18 @@ class EsistenzeWPKit {
                     if (class_exists($class_name)) {
                         // Add to loaded modules for debugging
                         $this->loaded_modules[$module_key] = true;
-                        
-                        if (function_exists('qmc_log_error')) {
-                            qmc_log_error("Modül başarıyla yüklendi: $module_key");
-                        }
                     } else {
                         // Log error if class doesn't exist
                         $this->loaded_modules[$module_key] = 'Class not found: ' . $class_name;
-                        
-                        if (function_exists('qmc_log_error')) {
-                            qmc_log_error("Sınıf bulunamadı: $class_name", array('file' => $module_file));
-                        }
                     }
                 } else {
                     // Log error if file doesn't exist
                     $this->loaded_modules[$module_key] = 'File not found: ' . $module_file;
-                    
-                    if (function_exists('qmc_log_error')) {
-                        qmc_log_error("Modül dosyası bulunamadı: $module_key", array(
-                            'expected_file' => $module_file,
-                            'plugin_dir' => $plugin_dir,
-                            'current_dir' => __DIR__
-                        ));
-                    }
                 }
             }
         } catch (Exception $e) {
             // Log exception for debugging
             $this->loaded_modules['error'] = $e->getMessage();
-            
-            if (function_exists('qmc_log_error')) {
-                qmc_log_error("Modül yükleme exception: " . $e->getMessage(), array(
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine()
-                ));
-            }
         }
     }
     
@@ -237,15 +192,6 @@ class EsistenzeWPKit {
             array($this, 'admin_dashboard')
         );
         
-        // Advanced Debug submenu
-        add_submenu_page(
-            'esistenze-wp-kit',
-            'QMC Debug',
-            'QMC Debug',
-            'manage_options',
-            'esistenze-qmc-debug',
-            array($this, 'qmc_debug_page')
-        );
         // Module submenus - only if module classes exist
         // Smart Buttons adds its own menu in its class
         if (class_exists('EsistenzeCategoryStyler') && method_exists('EsistenzeCategoryStyler', 'admin_page')) {
@@ -288,7 +234,7 @@ class EsistenzeWPKit {
             
             <div class="esistenze-welcome-panel">
                 <h2><?php _e('Hoş Geldiniz!', 'esistenze-wp-kit'); ?></h2>
-                <p><?php _e('Esistenze WordPress Kit, web sitenizi güçlendirmek için tasarlanmış 5 farklı modülü içerir.', 'esistenze-wp-kit'); ?></p>
+                <p><?php _e('Esistenze WordPress Kit, web sitenizi güçlendirmek için tasarlanmış 4 farklı modülü içerir.', 'esistenze-wp-kit'); ?></p>
                 <p><?php _e('Version:', 'esistenze-wp-kit'); ?> <?php echo ESISTENZE_WP_KIT_VERSION; ?></p>
             </div>
             
@@ -321,15 +267,6 @@ class EsistenzeWPKit {
                 </div>
                 
                 <div class="module-card">
-                    <h3><span class="dashicons dashicons-grid-view"></span> <?php _e('Quick Menu Cards', 'esistenze-wp-kit'); ?></h3>
-                    <p><?php _e('Görsel, başlık ve bağlantı içeren modern menü kartları oluşturur.', 'esistenze-wp-kit'); ?></p>
-                    <a href="<?php echo admin_url('admin.php?page=quick-menu-cards'); ?>" class="button button-primary"><?php _e('Ayarlar', 'esistenze-wp-kit'); ?></a>
-                    <div class="module-status <?php echo (isset($this->loaded_modules['quick-menu-cards']) && $this->loaded_modules['quick-menu-cards'] === true) ? 'active' : 'inactive'; ?>">
-                        <?php echo (isset($this->loaded_modules['quick-menu-cards']) && $this->loaded_modules['quick-menu-cards'] === true) ? __('Aktif', 'esistenze-wp-kit') : __('Devre Dışı', 'esistenze-wp-kit'); ?>
-                    </div>
-                </div>
-                
-                <div class="module-card">
                     <h3><span class="dashicons dashicons-tag"></span> <?php _e('Price Modifier', 'esistenze-wp-kit'); ?></h3>
                     <p><?php _e('WooCommerce ürün fiyatlarına özel notlar ve stiller ekler.', 'esistenze-wp-kit'); ?></p>
                     <a href="<?php echo admin_url('admin.php?page=esistenze-price-modifier'); ?>" class="button button-primary"><?php _e('Ayarlar', 'esistenze-wp-kit'); ?></a>
@@ -342,17 +279,7 @@ class EsistenzeWPKit {
             <div class="esistenze-info-panel">
                 <h3><?php _e('Kısa Kodlar ve Kullanım', 'esistenze-wp-kit'); ?></h3>
                 <div class="shortcode-list">
-                    <code>[display_categories]</code> - <?php _e('Stilize edilmiş kategorileri gösterir', 'esistenze-wp-kit'); ?><br>
-                    <code>[hizli_menu id="0"]</code> - <?php _e('Hızlı menü kartlarını ızgara görünümde gösterir', 'esistenze-wp-kit'); ?><br>
-                    <code>[hizli_menu_banner id="0"]</code> - <?php _e('Hızlı menü kartlarını banner görünümde gösterir', 'esistenze-wp-kit'); ?>
-                </div>
-            </div>
-
-            <div class="esistenze-tools-panel">
-                <h3><?php _e('Yardımcı Araçlar', 'esistenze-wp-kit'); ?></h3>
-                <div class="tools-buttons">
-                    <a href="<?php echo admin_url('admin.php?page=esistenze-wp-kit&action=reset_cache'); ?>" class="button"><?php _e('Önbelleği Temizle', 'esistenze-wp-kit'); ?></a>
-                    <a href="<?php echo admin_url('admin.php?page=esistenze-wp-kit&action=system_check'); ?>" class="button"><?php _e('Sistem Kontrolü', 'esistenze-wp-kit'); ?></a>
+                    <code>[display_categories]</code> - <?php _e('Stilize edilmiş kategorileri gösterir', 'esistenze-wp-kit'); ?>
                 </div>
             </div>
         </div>
@@ -413,7 +340,7 @@ class EsistenzeWPKit {
             margin: 10px 0 15px;
         }
         
-        .esistenze-info-panel, .esistenze-tools-panel {
+        .esistenze-info-panel {
             background: #fff;
             padding: 20px;
             border-radius: 8px;
@@ -423,10 +350,6 @@ class EsistenzeWPKit {
         
         .esistenze-info-panel {
             border-left: 4px solid #2196F3;
-        }
-        
-        .esistenze-tools-panel {
-            border-left: 4px solid #FF9800;
         }
         
         .shortcode-list {
@@ -444,12 +367,6 @@ class EsistenzeWPKit {
             border-radius: 3px;
             margin-right: 10px;
             font-weight: 600;
-        }
-        
-        .tools-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
         }
         
         .module-status {
@@ -475,35 +392,8 @@ class EsistenzeWPKit {
         <?php
     }
     
-    public function qmc_debug_page() {
-        // Advanced debug sayfası için iframe kullan
-        $debug_file_url = plugin_dir_url(__FILE__) . 'qmc-advanced-debug.php';
-        ?>
-        <div class="wrap">
-            <h1>Quick Menu Cards - Gelişmiş Debug</h1>
-            <p>Detaylı sistem analizi ve sorun tespiti...</p>
-            
-            <?php
-            // Debug dosyası var mı kontrol et
-            $debug_file_path = plugin_dir_path(__FILE__) . 'qmc-advanced-debug.php';
-            if (file_exists($debug_file_path)) {
-                echo '<iframe src="' . $debug_file_url . '" width="100%" height="800" style="border: 1px solid #ddd; border-radius: 5px;"></iframe>';
-                echo '<p><a href="' . $debug_file_url . '" target="_blank" class="button">Yeni Sekmede Aç</a></p>';
-            } else {
-                echo '<div class="notice notice-error">';
-                echo '<p><strong>Debug dosyası bulunamadı:</strong> ' . $debug_file_path . '</p>';
-                echo '</div>';
-                
-                // Basit debug bilgileri göster
-                include plugin_dir_path(__FILE__) . 'qmc-debug-dashboard.php';
-            }
-            ?>
-        </div>
-        <?php
-    }
-    
     public function admin_assets($hook) {
-        if (strpos($hook, 'esistenze') !== false) {
+        if (!empty($hook) && strpos($hook, 'esistenze') !== false) {
             wp_enqueue_style('esistenze-admin-style', ESISTENZE_WP_KIT_URL . 'assets/admin.css', array(), ESISTENZE_WP_KIT_VERSION);
             wp_enqueue_script('esistenze-admin-script', ESISTENZE_WP_KIT_URL . 'assets/admin.js', array('jquery', 'jquery-ui-sortable'), ESISTENZE_WP_KIT_VERSION, true);
         }
@@ -519,7 +409,6 @@ class EsistenzeWPKit {
             'smart_buttons_enabled' => true,
             'category_styler_enabled' => true,
             'custom_topbar_enabled' => true,
-            'quick_menu_enabled' => true,
             'price_modifier_enabled' => true
         );
         
@@ -528,46 +417,15 @@ class EsistenzeWPKit {
                 add_option($key, $value);
             }
         }
-        
-        // Create log directory
-        $log_dir = ESISTENZE_WP_KIT_PATH . 'logs';
-        if (!file_exists($log_dir)) {
-            wp_mkdir_p($log_dir);
-        }
-        
-        // Add activation log
-        $this->log_message('Plugin activated: ' . ESISTENZE_WP_KIT_VERSION);
     }
     
     public function deactivate() {
         // Deactivation tasks
         flush_rewrite_rules();
-        
-        // Add deactivation log
-        $this->log_message('Plugin deactivated: ' . ESISTENZE_WP_KIT_VERSION);
-    }
-    
-    private function log_message($message) {
-        $log_file = ESISTENZE_WP_KIT_PATH . 'logs/plugin.log';
-        $time = current_time('mysql');
-        $log_entry = sprintf("[%s] %s\n", $time, $message);
-        
-        // Log to file if we can
-        if (is_writable(dirname($log_file))) {
-            file_put_contents($log_file, $log_entry, FILE_APPEND);
-        }
     }
 }
 
 // Initialize the plugin
 EsistenzeWPKit::getInstance();
 
-}
-
-// YETKİ FONKSİYONU: Quick Menu Cards ve diğer modüller için global capability
-if (!function_exists('esistenze_qmc_capability')) {
-    function esistenze_qmc_capability() {
-        // Admin paneli için güvenli yetki seviyesi
-        return 'edit_posts';
-    }
 }
