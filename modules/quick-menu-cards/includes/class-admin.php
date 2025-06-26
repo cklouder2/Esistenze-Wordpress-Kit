@@ -18,7 +18,7 @@ class EsistenzeQuickMenuCardsAdmin {
     public function __construct($module_path, $module_url) {
         $this->module_path = $module_path;
         $this->module_url = $module_url;
-        $this->capability = 'manage_options';
+        $this->capability = esistenze_qmc_capability();
         $this->page_hooks = array();
         $this->init_hooks();
     }
