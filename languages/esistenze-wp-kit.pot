@@ -1,0 +1,41 @@
+# Copyright (C) 2024 Esistenze WordPress Kit
+# This file is distributed under the same license as the Esistenze WordPress Kit package.
+msgid ""
+msgstr ""
+"Project-Id-Version: Esistenze WordPress Kit 1.2.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/esistenze-wp-kit\n"
+"POT-Creation-Date: 2024-01-01 00:00:00+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2024-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: esistenze_main_plugin.php:100
+msgid "modül yüklenemedi."
+msgstr ""
+
+#: esistenze_main_plugin.php:105
+msgid "Eklentiyi güncelleyin veya tekrar yükleyin. Sorun devam ederse destek ekibiyle iletişime geçin."
+msgstr ""
+
+#: modules/smart-product-buttons/smart-product-buttons.php:50
+msgid "Bu sayfaya erişim yetkiniz bulunmuyor."
+msgstr ""
+
+#: modules/price-modifier/price-modifier.php:60
+msgid "Bu sayfaya erişim yetkiniz bulunmuyor."
+msgstr ""
+
+#: modules/category-styler/category-styler.php:85
+msgid "Hiç kategori bulunamadı."
+msgstr ""
+
+#: modules/category-styler/category-styler.php:105
+msgid "%d ürün"
+msgid_plural "%d ürün"
+msgstr[0] ""
+msgstr[1] "" 

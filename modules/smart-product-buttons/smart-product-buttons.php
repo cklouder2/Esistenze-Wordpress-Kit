@@ -34,6 +34,7 @@ class EsistenzeSmartButtons {
      */
     public function init(): void {
         // Admin hooks
+        add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_post_esistenze_smart_button_save', array($this, 'save_button'));
         add_action('admin_post_esistenze_smart_button_delete', array($this, 'delete_button'));
         add_action('admin_post_esistenze_smart_button_duplicate', array($this, 'duplicate_button'));
@@ -55,6 +56,756 @@ class EsistenzeSmartButtons {
         
         // Register settings
         add_action('admin_init', array($this, 'register_settings'));
+    }
+    
+    /**
+     * Add admin menu
+     */
+    public function add_admin_menu() {
+        add_submenu_page(
+            'esistenze-wp-kit',
+            'Smart Product Buttons',
+            'Smart Buttons',
+            esistenze_qmc_capability(),
+            'esistenze-smart-buttons',
+            array($this, 'admin_page')
+        );
+    }
+
+    /**
+     * Admin page handler
+     */
+    public function admin_page() {
+        $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'buttons';
+        $current_action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : '';
+        
+        // Handle messages
+        $message = isset($_GET['message']) ? sanitize_text_field($_GET['message']) : '';
+        
+        ?>
+        <div class="wrap esistenze-smart-buttons-wrap">
+            <h1 class="wp-heading-inline">Smart Product Buttons</h1>
+            
+            <?php if ($current_tab === 'buttons'): ?>
+                <a href="<?php echo admin_url('admin.php?page=esistenze-smart-buttons&tab=add'); ?>" class="page-title-action">Yeni Buton Ekle</a>
+            <?php endif; ?>
+            
+            <hr class="wp-header-end">
+            
+            <?php $this->show_admin_messages($message); ?>
+            
+            <!-- Tab Navigation -->
+            <nav class="nav-tab-wrapper wp-clearfix">
+                <a href="<?php echo admin_url('admin.php?page=esistenze-smart-buttons&tab=buttons'); ?>" 
+                   class="nav-tab <?php echo $current_tab === 'buttons' ? 'nav-tab-active' : ''; ?>">
+                    <span class="dashicons dashicons-admin-links"></span> Butonlar
+                </a>
+                <a href="<?php echo admin_url('admin.php?page=esistenze-smart-buttons&tab=add'); ?>" 
+                   class="nav-tab <?php echo $current_tab === 'add' ? 'nav-tab-active' : ''; ?>">
+                    <span class="dashicons dashicons-plus-alt"></span> Yeni Buton
+                </a>
+                <a href="<?php echo admin_url('admin.php?page=esistenze-smart-buttons&tab=settings'); ?>" 
+                   class="nav-tab <?php echo $current_tab === 'settings' ? 'nav-tab-active' : ''; ?>">
+                    <span class="dashicons dashicons-admin-settings"></span> Ayarlar
+                </a>
+                <a href="<?php echo admin_url('admin.php?page=esistenze-smart-buttons&tab=analytics'); ?>" 
+                   class="nav-tab <?php echo $current_tab === 'analytics' ? 'nav-tab-active' : ''; ?>">
+                    <span class="dashicons dashicons-chart-bar"></span> İstatistikler
+                </a>
+                <a href="<?php echo admin_url('admin.php?page=esistenze-smart-buttons&tab=import-export'); ?>" 
+                   class="nav-tab <?php echo $current_tab === 'import-export' ? 'nav-tab-active' : ''; ?>">
+                    <span class="dashicons dashicons-upload"></span> İçe/Dışa Aktar
+                </a>
+            </nav>
+            
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <?php
+                switch ($current_tab) {
+                    case 'buttons':
+                    default:
+                        $this->render_buttons_list();
+                        break;
+                    case 'add':
+                    case 'edit':
+                        $this->render_button_form();
+                        break;
+                    case 'settings':
+                        $this->render_settings_page();
+                        break;
+                    case 'analytics':
+                        $this->render_analytics_page();
+                        break;
+                    case 'import-export':
+                        $this->render_import_export_page();
+                        break;
+                }
+                ?>
+            </div>
+        </div>
+        <?php
+        
+        // Enqueue admin assets
+        $this->enqueue_admin_assets();
+    }
+
+    /**
+     * Render buttons list
+     */
+    private function render_buttons_list() {
+        $buttons = get_option('esistenze_smart_custom_buttons', []);
+        
+        ?>
+        <div class="buttons-list-container">
+            <?php if (empty($buttons)): ?>
+                <div class="no-buttons-message">
+                    <div class="dashicons dashicons-admin-links"></div>
+                    <h3>Henüz buton oluşturulmamış</h3>
+                    <p>İlk butonunuzu oluşturmak için "Yeni Buton Ekle" düğmesine tıklayın.</p>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-smart-buttons&tab=add'); ?>" class="button button-primary button-large">İlk Butonu Oluştur</a>
+                </div>
+            <?php else: ?>
+                
+                <!-- Search and Filter -->
+                <div class="tablenav top">
+                    <div class="alignleft actions">
+                        <select id="button-filter-type">
+                            <option value="">Tüm Türler</option>
+                            <option value="phone">Telefon</option>
+                            <option value="mail">E-posta</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="form_trigger">Form</option>
+                        </select>
+                        <input type="search" id="button-search" placeholder="Buton ara..." value="">
+                        <input type="submit" class="button" value="Filtrele">
+                    </div>
+                    
+                    <div class="alignleft actions">
+                        <select id="bulk-action-selector-top">
+                            <option value="">Toplu İşlemler</option>
+                            <option value="delete">Sil</option>
+                            <option value="duplicate">Kopyala</option>
+                            <option value="enable">Etkinleştir</option>
+                            <option value="disable">Devre Dışı Bırak</option>
+                        </select>
+                        <input type="button" class="button action" value="Uygula" onclick="applyBulkAction()">
+                    </div>
+                </div>
+                
+                <!-- Buttons Statistics -->
+                <div class="buttons-statistics">
+                    <div class="stat-box">
+                        <div class="stat-number"><?php echo count($buttons); ?></div>
+                        <div class="stat-label">Toplam Buton</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number"><?php echo count(array_filter($buttons, function($b) { return !empty($b['enabled']); })); ?></div>
+                        <div class="stat-label">Aktif Buton</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number"><?php echo $this->get_total_clicks(); ?></div>
+                        <div class="stat-label">Toplam Tıklama</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number"><?php echo $this->get_total_views(); ?></div>
+                        <div class="stat-label">Toplam Görüntülenme</div>
+                    </div>
+                </div>
+                
+                <!-- Buttons Grid -->
+                <div class="esistenze-buttons-grid" id="buttons-container">
+                    <?php foreach ($buttons as $index => $button): ?>
+                        <?php $this->render_button_card($button, $index); ?>
+                    <?php endforeach; ?>
+                </div>
+                
+                <!-- Bulk Actions Form -->
+                <form id="bulk-action-form" method="post" action="<?php echo admin_url('admin-post.php'); ?>" style="display: none;">
+                    <input type="hidden" name="action" value="esistenze_smart_buttons_bulk">
+                    <input type="hidden" name="bulk_action" id="bulk-action-value">
+                    <input type="hidden" name="button_ids" id="bulk-selected-ids">
+                    <?php wp_nonce_field('esistenze_smart_buttons_bulk'); ?>
+                </form>
+                
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render single button card
+     */
+    private function render_button_card($button, $index) {
+        $type_label = self::get_type_label($button['type'] ?? '');
+        $type_icon = self::get_type_icon($button['type'] ?? '');
+        $clicks = get_option('esistenze_button_clicks_' . $index, 0);
+        $views = get_option('esistenze_button_views_' . $index, 0);
+        $enabled = !empty($button['enabled']);
+        
+        ?>
+        <div class="button-card" data-type="<?php echo esc_attr($button['type'] ?? ''); ?>" data-id="<?php echo $index; ?>">
+            <div class="button-card-header">
+                <div class="button-type-badge <?php echo esc_attr($button['type'] ?? ''); ?>">
+                    <?php echo $type_icon . ' ' . esc_html($type_label); ?>
+                </div>
+                <div class="button-actions">
+                    <input type="checkbox" class="button-checkbox" value="<?php echo $index; ?>">
+                    <button type="button" class="preview-btn" data-id="<?php echo $index; ?>" title="Önizle">
+                        <span class="dashicons dashicons-visibility"></span>
+                    </button>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-smart-buttons&tab=edit&id=' . $index); ?>" class="edit-btn" title="Düzenle">
+                        <span class="dashicons dashicons-edit"></span>
+                    </a>
+                    <a href="<?php echo wp_nonce_url(admin_url('admin-post.php?action=esistenze_smart_button_duplicate&id=' . $index), 'esistenze_smart_button_duplicate'); ?>" class="duplicate-btn" title="Kopyala">
+                        <span class="dashicons dashicons-admin-page"></span>
+                    </a>
+                    <a href="<?php echo wp_nonce_url(admin_url('admin-post.php?action=esistenze_smart_button_delete&id=' . $index), 'esistenze_smart_button_delete_' . $index); ?>" class="delete-btn" title="Sil" onclick="return confirm('Bu butonu silmek istediğinizden emin misiniz?')">
+                        <span class="dashicons dashicons-trash"></span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="button-card-body">
+                <h3 class="button-title"><?php echo esc_html($button['title'] ?? 'Başlıksız'); ?></h3>
+                <div class="button-value"><?php echo esc_html($button['value'] ?? ''); ?></div>
+                
+                <div class="button-preview">
+                    <?php echo self::render_button_preview($button); ?>
+                </div>
+                
+                <div class="button-stats">
+                    <div class="stat-item">
+                        <span class="dashicons dashicons-visibility"></span>
+                        <?php echo number_format($views); ?> görüntülenme
+                    </div>
+                    <div class="stat-item">
+                        <span class="dashicons dashicons-admin-links"></span>
+                        <?php echo number_format($clicks); ?> tıklama
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-card-footer">
+                <div class="button-status <?php echo $enabled ? 'enabled' : 'disabled'; ?>">
+                    <?php echo $enabled ? 'Aktif' : 'Pasif'; ?>
+                </div>
+                <div class="button-shortcode">
+                    <code>[esistenze_button id="<?php echo $index; ?>"]</code>
+                    <button type="button" onclick="esistenzeCopyToClipboard('[esistenze_button id=&quot;<?php echo $index; ?>&quot;]')" title="Kopyala">
+                        <span class="dashicons dashicons-clipboard"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render button form (add/edit)
+     */
+    private function render_button_form() {
+        $button_id = isset($_GET['id']) ? intval($_GET['id']) : -1;
+        $is_edit = $button_id >= 0;
+        
+        $button = array();
+        if ($is_edit) {
+            $buttons = get_option('esistenze_smart_custom_buttons', []);
+            $button = isset($buttons[$button_id]) ? $buttons[$button_id] : array();
+            
+            if (empty($button)) {
+                echo '<div class="notice notice-error"><p>Buton bulunamadı!</p></div>';
+                return;
+            }
+        }
+        
+        // Default values
+        $button = wp_parse_args($button, array(
+            'title' => '',
+            'type' => 'phone',
+            'value' => '',
+            'message' => '',
+            'button_color_start' => '#4CAF50',
+            'button_color_end' => '#45a049',
+            'text_color' => '#ffffff',
+            'icon' => 'fa-phone',
+            'font_size' => 16,
+            'tracking_name' => '',
+            'enabled' => true
+        ));
+        
+        ?>
+        <div class="form-layout">
+            <!-- Form Fields -->
+            <div class="form-fields">
+                <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+                    <input type="hidden" name="action" value="esistenze_smart_button_save">
+                    <?php if ($is_edit): ?>
+                        <input type="hidden" name="button_id" value="<?php echo $button_id; ?>">
+                    <?php endif; ?>
+                    <?php wp_nonce_field('esistenze_smart_button_save'); ?>
+                    
+                    <!-- Basic Information -->
+                    <div class="postbox">
+                        <div class="postbox-header">
+                            <h2 class="hndle">Temel Bilgiler</h2>
+                        </div>
+                        <div class="inside">
+                            <table class="form-table">
+                                <tr>
+                                    <th scope="row">
+                                        <label for="button_title">Buton Başlığı *</label>
+                                    </th>
+                                    <td>
+                                        <input type="text" id="button_title" name="title" value="<?php echo esc_attr($button['title']); ?>" class="regular-text" required onchange="updatePreview()">
+                                        <p class="description">Buton üzerinde görünecek metin</p>
+                                    </td>
+                                </tr>
+                                
+                                <tr>
+                                    <th scope="row">
+                                        <label for="button_type">Buton Türü *</label>
+                                    </th>
+                                    <td>
+                                        <select id="button_type" name="type" required onchange="updateFormFields(this.value)">
+                                            <option value="phone" <?php selected($button['type'], 'phone'); ?>>📞 Telefon</option>
+                                            <option value="mail" <?php selected($button['type'], 'mail'); ?>>📧 E-posta</option>
+                                            <option value="whatsapp" <?php selected($button['type'], 'whatsapp'); ?>>💬 WhatsApp</option>
+                                            <option value="form_trigger" <?php selected($button['type'], 'form_trigger'); ?>>📝 Form Popup</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                
+                                <tr>
+                                    <th scope="row">
+                                        <label for="button_value">Değer *</label>
+                                    </th>
+                                    <td>
+                                        <input type="text" id="button_value" name="value" value="<?php echo esc_attr($button['value']); ?>" class="regular-text" required onchange="updatePreview()">
+                                        <p class="description" id="value_description">Türe göre değişir</p>
+                                    </td>
+                                </tr>
+                                
+                                <tr id="message_field" style="<?php echo $button['type'] === 'whatsapp' ? '' : 'display:none;'; ?>">
+                                    <th scope="row">
+                                        <label for="button_message">WhatsApp Mesajı</label>
+                                    </th>
+                                    <td>
+                                        <textarea id="button_message" name="message" rows="3" class="regular-text"><?php echo esc_textarea($button['message']); ?></textarea>
+                                        <p class="description">WhatsApp'ta otomatik olarak yazılacak mesaj</p>
+                                    </td>
+                                </tr>
+                                
+                                <tr>
+                                    <th scope="row">
+                                        <label for="button_enabled">Durum</label>
+                                    </th>
+                                    <td>
+                                        <label>
+                                            <input type="checkbox" id="button_enabled" name="enabled" value="1" <?php checked($button['enabled']); ?>>
+                                            Butonu etkinleştir
+                                        </label>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <?php submit_button($is_edit ? 'Butonu Güncelle' : 'Buton Oluştur', 'primary', 'submit', false); ?>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-smart-buttons'); ?>" class="button">İptal</a>
+                    
+                </form>
+            </div>
+            
+            <!-- Preview -->
+            <div class="form-preview">
+                <div class="postbox">
+                    <div class="postbox-header">
+                        <h2 class="hndle">Canlı Önizleme</h2>
+                    </div>
+                    <div class="inside">
+                        <div class="button-preview-container">
+                            <div id="button_preview">
+                                <?php echo self::render_button_preview($button); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render settings page
+     */
+    private function render_settings_page() {
+        $settings = get_option('esistenze_smart_buttons_settings', array());
+        
+        if (isset($_POST['submit'])) {
+            check_admin_referer('esistenze_smart_buttons_settings');
+            
+            $settings = array(
+                'show_on_products' => !empty($_POST['show_on_products']),
+                'enable_tracking' => !empty($_POST['enable_tracking']),
+                'button_order' => sanitize_text_field($_POST['button_order'] ?? 'default')
+            );
+            
+            update_option('esistenza_smart_buttons_settings', $settings);
+            echo '<div class="notice notice-success"><p>Ayarlar kaydedildi!</p></div>';
+        }
+        
+        ?>
+        <form method="post" action="">
+            <?php wp_nonce_field('esistenze_smart_buttons_settings'); ?>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">Ürün Sayfalarında Göster</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="show_on_products" value="1" <?php checked(!empty($settings['show_on_products'])); ?>>
+                            WooCommerce ürün sayfalarında butonları göster
+                        </label>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">İstatistik Takibi</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="enable_tracking" value="1" <?php checked(!empty($settings['enable_tracking'])); ?>>
+                            Buton tıklama ve görüntülenme istatistiklerini topla
+                        </label>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">Buton Sıralaması</th>
+                    <td>
+                        <select name="button_order">
+                            <option value="default" <?php selected($settings['button_order'] ?? 'default', 'default'); ?>>Varsayılan</option>
+                            <option value="alphabetical" <?php selected($settings['button_order'] ?? 'default', 'alphabetical'); ?>>Alfabetik</option>
+                            <option value="type" <?php selected($settings['button_order'] ?? 'default', 'type'); ?>>Türe Göre</option>
+                        </select>
+                    </td>
+                </tr>
+            </table>
+            
+            <?php submit_button(); ?>
+        </form>
+        <?php
+    }
+
+    /**
+     * Render analytics page
+     */
+    private function render_analytics_page() {
+        $buttons = get_option('esistenze_smart_custom_buttons', []);
+        
+        echo '<h2>Buton İstatistikleri</h2>';
+        
+        if (empty($buttons)) {
+            echo '<p>Henüz buton bulunmuyor.</p>';
+            return;
+        }
+        
+        echo '<table class="wp-list-table widefat fixed striped">';
+        echo '<thead><tr><th>Buton</th><th>Tür</th><th>Görüntülenme</th><th>Tıklama</th><th>CTR</th></tr></thead>';
+        echo '<tbody>';
+        
+        foreach ($buttons as $index => $button) {
+            $views = get_option('esistenze_button_views_' . $index, 0);
+            $clicks = get_option('esistenze_button_clicks_' . $index, 0);
+            $ctr = $views > 0 ? round(($clicks / $views) * 100, 2) : 0;
+            
+            echo '<tr>';
+            echo '<td>' . esc_html($button['title'] ?? 'Başlıksız') . '</td>';
+            echo '<td>' . esc_html(self::get_type_label($button['type'] ?? '')) . '</td>';
+            echo '<td>' . number_format($views) . '</td>';
+            echo '<td>' . number_format($clicks) . '</td>';
+            echo '<td>%' . $ctr . '</td>';
+            echo '</tr>';
+        }
+        
+        echo '</tbody></table>';
+    }
+
+    /**
+     * Render import/export page
+     */
+    private function render_import_export_page() {
+        ?>
+        <div class="import-export-container">
+            <div class="postbox">
+                <h2>Dışa Aktar</h2>
+                <div class="inside">
+                    <p>Tüm butonlarınızı JSON formatında dışa aktarın.</p>
+                    <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+                        <input type="hidden" name="action" value="esistenze_smart_buttons_export">
+                        <?php wp_nonce_field('esistenze_smart_buttons_export'); ?>
+                        <?php submit_button('Dışa Aktar', 'secondary'); ?>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="postbox">
+                <h2>İçe Aktar</h2>
+                <div class="inside">
+                    <p>JSON formatındaki buton dosyasını içe aktarın.</p>
+                    <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" enctype="multipart/form-data">
+                        <input type="hidden" name="action" value="esistenze_smart_buttons_import">
+                        <?php wp_nonce_field('esistenze_smart_buttons_import'); ?>
+                        
+                        <table class="form-table">
+                            <tr>
+                                <th scope="row">Dosya</th>
+                                <td><input type="file" name="import_file" accept=".json" required></td>
+                            </tr>
+                            <tr>
+                                <th scope="row">İçe Aktarma Modu</th>
+                                <td>
+                                    <label><input type="radio" name="import_mode" value="replace" checked> Mevcut butonları değiştir</label><br>
+                                    <label><input type="radio" name="import_mode" value="merge"> Mevcut butonlarla birleştir</label>
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <?php submit_button('İçe Aktar', 'primary'); ?>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Show admin messages
+     */
+    private function show_admin_messages($message) {
+        if (empty($message)) return;
+        
+        $messages = array(
+            'created' => array('success', 'Buton başarıyla oluşturuldu!'),
+            'updated' => array('success', 'Buton başarıyla güncellendi!'),
+            'deleted' => array('success', 'Buton başarıyla silindi!'),
+            'duplicated' => array('success', 'Buton başarıyla kopyalandı!'),
+            'imported' => array('success', 'Butonlar başarıyla içe aktarıldı!'),
+            'error' => array('error', 'İşlem sırasında hata oluştu!')
+        );
+        
+        if (isset($messages[$message])) {
+            list($type, $text) = $messages[$message];
+            echo '<div class="notice notice-' . $type . ' is-dismissible"><p>' . esc_html($text) . '</p></div>';
+        }
+    }
+
+    /**
+     * Get total clicks
+     */
+    private function get_total_clicks() {
+        $buttons = get_option('esistenze_smart_custom_buttons', []);
+        $total = 0;
+        
+        foreach (array_keys($buttons) as $index) {
+            $total += get_option('esistenze_button_clicks_' . $index, 0);
+        }
+        
+        return $total;
+    }
+
+    /**
+     * Get total views
+     */
+    private function get_total_views() {
+        $buttons = get_option('esistenze_smart_custom_buttons', []);
+        $total = 0;
+        
+        foreach (array_keys($buttons) as $index) {
+            $total += get_option('esistenza_button_views_' . $index, 0);
+        }
+        
+        return $total;
+    }
+
+    /**
+     * Enqueue admin assets
+     */
+    private function enqueue_admin_assets() {
+        wp_enqueue_style('font-awesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css', [], '5.15.4');
+        
+        // Inline CSS and JS
+        $this->output_admin_styles();
+        $this->output_admin_scripts();
+    }
+    
+    private function output_admin_styles() {
+        ?>
+        <style>
+        .esistenze-smart-buttons-wrap { max-width: 1200px; }
+        .nav-tab { padding: 8px 16px; }
+        .nav-tab .dashicons { margin-right: 5px; vertical-align: middle; }
+        
+        .esistenze-buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .button-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .button-card-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .button-type-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .button-type-badge.phone { background: #e3f2fd; color: #1976d2; }
+        .button-type-badge.mail { background: #f3e5f5; color: #7b1fa2; }
+        .button-type-badge.whatsapp { background: #e8f5e8; color: #388e3c; }
+        .button-type-badge.form_trigger { background: #fff3e0; color: #f57c00; }
+        
+        .button-card-body { padding: 15px; }
+        .button-title { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+        .button-value { margin: 0 0 15px; color: #666; font-size: 14px; }
+        
+        .buttons-statistics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat-box {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .stat-number { font-size: 24px; font-weight: 700; color: #4caf50; }
+        .stat-label { font-size: 12px; color: #666; margin-top: 5px; }
+        
+        .no-buttons-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .form-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        
+        .button-preview-container {
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            text-align: center;
+            min-height: 100px;
+        }
+        
+        @media (max-width: 1024px) {
+            .form-layout { grid-template-columns: 1fr; }
+            .buttons-statistics { grid-template-columns: repeat(2, 1fr); }
+        }
+        </style>
+        <?php
+    }
+    
+    private function output_admin_scripts() {
+        ?>
+        <script>
+        function updateFormFields(type) {
+            const valueField = document.getElementById('button_value');
+            const valueDesc = document.getElementById('value_description');
+            const messageField = document.getElementById('message_field');
+            
+            switch(type) {
+                case 'phone':
+                    valueField.placeholder = '+90 555 123 4567';
+                    valueDesc.textContent = 'Telefon numarası (uluslararası format)';
+                    messageField.style.display = 'none';
+                    break;
+                case 'mail':
+                    valueField.placeholder = 'info@example.com';
+                    valueDesc.textContent = 'E-posta adresi';
+                    messageField.style.display = 'none';
+                    break;
+                case 'whatsapp':
+                    valueField.placeholder = '+90 555 123 4567';
+                    valueDesc.textContent = 'WhatsApp numarası';
+                    messageField.style.display = 'table-row';
+                    break;
+                case 'form_trigger':
+                    valueField.placeholder = '123';
+                    valueDesc.textContent = 'Contact Form 7 ID numarası';
+                    messageField.style.display = 'none';
+                    break;
+            }
+            updatePreview();
+        }
+        
+        function updatePreview() {
+            const title = document.getElementById('button_title').value || 'Örnek Buton';
+            const color1 = document.querySelector('input[name="button_color_start"]')?.value || '#4CAF50';
+            const color2 = document.querySelector('input[name="button_color_end"]')?.value || '#45a049';
+            const textColor = document.querySelector('input[name="text_color"]')?.value || '#ffffff';
+            const fontSize = document.getElementById('font_size')?.value || '16';
+            
+            const style = `background: linear-gradient(45deg, ${color1}, ${color2}); color: ${textColor}; font-size: ${fontSize}px; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; font-weight: 600; border: none; cursor: pointer;`;
+            
+            const preview = document.getElementById('button_preview');
+            if (preview) {
+                preview.innerHTML = `<button style="${style}">${title}</button>`;
+            }
+        }
+        
+        function applyBulkAction() {
+            const action = document.getElementById('bulk-action-selector-top').value;
+            const selected = Array.from(document.querySelectorAll('.button-checkbox:checked')).map(cb => cb.value);
+            
+            if (!action || selected.length === 0) {
+                alert('Lütfen bir işlem seçin ve en az bir buton işaretleyin.');
+                return;
+            }
+            
+            if (action === 'delete' && !confirm('Seçili butonları silmek istediğinizden emin misiniz?')) {
+                return;
+            }
+            
+            document.getElementById('bulk-action-value').value = action;
+            document.getElementById('bulk-selected-ids').value = selected.join(',');
+            document.getElementById('bulk-action-form').submit();
+        }
+        
+        // Initialize form if in edit mode
+        document.addEventListener('DOMContentLoaded', function() {
+            const typeField = document.getElementById('button_type');
+            if (typeField) {
+                updateFormFields(typeField.value);
+                updatePreview();
+            }
+        });
+        </script>
+        <?php
     }
     
     /**
@@ -579,529 +1330,6 @@ class EsistenzeSmartButtons {
                 });
                 break;
         }
-    }
-    
-    private static function enqueue_admin_assets() {
-        ?>
-        <style>
-        .esistenze-smart-buttons-wrap { max-width: 1200px; }
-        .nav-tab { padding: 8px 16px; }
-        .nav-tab .dashicons { margin-right: 5px; vertical-align: middle; }
-        
-        /* Buttons Grid */
-        .esistenze-buttons-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }
-        
-        .button-card {
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-        }
-        
-        .button-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
-        }
-        
-        .button-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-            background: #f9f9f9;
-        }
-        
-        .button-type-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .button-type-badge.phone { background: #e3f2fd; color: #1976d2; }
-        .button-type-badge.mail { background: #f3e5f5; color: #7b1fa2; }
-        .button-type-badge.whatsapp { background: #e8f5e8; color: #388e3c; }
-        .button-type-badge.form_trigger { background: #fff3e0; color: #f57c00; }
-        
-        .button-actions {
-            display: flex;
-            gap: 5px;
-        }
-        
-        .button-actions button {
-            padding: 5px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            border-radius: 3px;
-            transition: background 0.2s ease;
-        }
-        
-        .button-actions button:hover { background: rgba(0,0,0,0.1); }
-        .preview-btn:hover { color: #2196f3; }
-        .edit-btn:hover { color: #4caf50; }
-        .duplicate-btn:hover { color: #ff9800; }
-        .delete-btn:hover { color: #f44336; }
-        
-        .button-card-body {
-            padding: 15px;
-        }
-        
-        .button-title {
-            margin: 0 0 8px;
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .button-value {
-            margin: 0 0 15px;
-            color: #666;
-            font-size: 14px;
-        }
-        
-        .button-preview {
-            margin: 15px 0;
-            text-align: center;
-        }
-        
-        .button-stats {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-        }
-        
-        .stat-item {
-            font-size: 12px;
-            color: #666;
-        }
-        
-        .stat-item .dashicons {
-            font-size: 14px;
-            margin-right: 3px;
-        }
-        
-        .button-card-footer {
-            padding: 10px 15px;
-            background: #f9f9f9;
-            border-top: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-        }
-        
-        .button-status.enabled {
-            color: #4caf50;
-            font-weight: 600;
-        }
-        
-        .button-status.disabled {
-            color: #f44336;
-            font-weight: 600;
-        }
-        
-        /* Form Layout */
-        .form-layout {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 30px;
-            margin: 20px 0;
-        }
-        
-        .form-fields .postbox {
-            margin-bottom: 20px;
-        }
-        
-        .form-preview .postbox {
-            position: sticky;
-            top: 32px;
-            margin-bottom: 20px;
-        }
-        
-        .color-picker-group {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .color-picker-group label {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .color-picker {
-            width: 50px;
-            height: 50px;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        .icon-picker {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        .button-preview-container {
-            padding: 20px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            text-align: center;
-            min-height: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .preview-devices {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .device-btn {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            background: #fff;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        
-        .device-btn.active {
-            background: #4caf50;
-            color: white;
-            border-color: #4caf50;
-        }
-        
-        /* Statistics */
-.buttons-statistics {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin: 30px 0;
-            padding: 20px;
-            background: #f9f9f9;
-            border-radius: 8px;
-        }
-        
-        .stat-box {
-            text-align: center;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .stat-number {
-            font-size: 24px;
-            font-weight: 700;
-            color: #4caf50;
-        }
-        
-        .stat-label {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
-        }
-        
-        /* No buttons message */
-        .no-buttons-message {
-            text-align: center;
-            padding: 60px 20px;
-            color: #666;
-        }
-        
-        .no-buttons-message .dashicons {
-            font-size: 48px;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
-        
-        .no-buttons-message h3 {
-            margin: 20px 0 10px;
-            color: #333;
-        }
-        
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .form-layout {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            
-            .esistenze-buttons-grid {
-                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            }
-            
-            .buttons-statistics {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-        
-        @media (max-width: 600px) {
-            .esistenze-buttons-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .buttons-statistics {
-                grid-template-columns: 1fr;
-            }
-            
-            .color-picker-group {
-                justify-content: center;
-            }
-        }
-        </style>
-        
-        <script>
-        jQuery(document).ready(function($) {
-            // Form field updates based on button type
-            window.updateFormFields = function(type) {
-                const valueField = $('#button_value');
-                const valueDesc = $('#value_description');
-                const messageField = $('#message_field');
-                
-                switch(type) {
-                    case 'phone':
-                        valueField.attr('placeholder', '+90 555 123 4567');
-                        valueDesc.text('Telefon numarası (uluslararası format)');
-                        messageField.hide();
-                        break;
-                    case 'mail':
-                        valueField.attr('placeholder', 'info@example.com');
-                        valueDesc.text('E-posta adresi');
-                        messageField.hide();
-                        break;
-                    case 'whatsapp':
-                        valueField.attr('placeholder', '+90 555 123 4567');
-                        valueDesc.text('WhatsApp numarası (uluslararası format)');
-                        messageField.show();
-                        break;
-                    case 'form_trigger':
-                        valueField.attr('placeholder', '123');
-                        valueDesc.text('Contact Form 7 ID numarası');
-                        messageField.hide();
-                        break;
-                    default:
-                        valueField.attr('placeholder', '');
-                        valueDesc.text('Türe göre değişir');
-                        messageField.hide();
-                }
-                updatePreview();
-            };
-            
-            // Live preview update
-            window.updatePreview = function() {
-                const title = $('#button_title').val() || 'Örnek Buton';
-                const color1 = $('input[name="button_color_start"]').val();
-                const color2 = $('input[name="button_color_end"]').val();
-                const textColor = $('input[name="text_color"]').val();
-                const fontSize = $('#font_size').val();
-                const icon = $('#button_icon').val();
-                
-                const iconHtml = icon ? `<i class="fa ${icon}" style="margin-right: 8px;"></i>` : '';
-                const style = `background: linear-gradient(45deg, ${color1}, ${color2}); color: ${textColor}; font-size: ${fontSize}px; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; font-weight: 600; border: none; cursor: pointer;`;
-                
-                $('#button_preview').html(`<button style="${style}">${iconHtml}${title}</button>`);
-            };
-            
-            // Font size slider update
-            window.updateFontSize = function(value) {
-                $('#font_size_display').text(value + 'px');
-                updatePreview();
-            };
-            
-            // Copy shortcode
-            window.copyShortcode = function() {
-                const shortcode = $('#shortcode_display').text();
-                navigator.clipboard.writeText(shortcode).then(function() {
-                    alert('Kısa kod kopyalandı!');
-                });
-            };
-            
-            // Icon picker (basic implementation)
-            window.openIconPicker = function() {
-                const icons = [
-                    'fa-phone', 'fa-envelope', 'fa-whatsapp', 'fa-comment', 
-                    'fa-shopping-cart', 'fa-heart', 'fa-star', 'fa-home', 
-                    'fa-user', 'fa-cog', 'fa-bell', 'fa-calendar', 
-                    'fa-search', 'fa-paper-plane', 'fa-map-marker', 
-                    'fa-check', 'fa-info-circle', 'fa-question-circle'
-                ];
-                
-                const iconHtml = icons.map(icon => 
-                    `<button type="button" onclick="selectIcon('${icon}')" style="margin: 5px; padding: 10px; border: 1px solid #ddd; background: white; cursor: pointer;"><i class="fa ${icon}"></i></button>`
-                ).join('');
-                
-                const modal = $(`
-                    <div id="icon-picker-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center;">
-                        <div style="background: white; padding: 20px; border-radius: 8px; max-width: 400px;">
-                            <h3>İkon Seç</h3>
-                            <div style="max-height: 300px; overflow-y: auto;">
-                                ${iconHtml}
-                            </div>
-                            <button type="button" onclick="closeIconPicker()" style="margin-top: 15px; padding: 8px 16px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">Kapat</button>
-                        </div>
-                    </div>
-                `);
-                
-                $('body').append(modal);
-            };
-            
-            window.selectIcon = function(icon) {
-                $('#button_icon').val(icon);
-                updatePreview();
-                closeIconPicker();
-            };
-            
-            window.closeIconPicker = function() {
-                $('#icon-picker-modal').remove();
-            };
-            
-            // Device preview toggle
-            $('.device-btn').on('click', function() {
-                $('.device-btn').removeClass('active');
-                $(this).addClass('active');
-                
-                const device = $(this).data('device');
-                const preview = $('#button_preview');
-                
-                switch(device) {
-                    case 'desktop':
-                        preview.css('max-width', '100%');
-                        break;
-                    case 'tablet':
-                        preview.css('max-width', '768px');
-                        break;
-                    case 'mobile':
-                        preview.css('max-width', '375px');
-                        break;
-                }
-            });
-            
-            // Search and filter
-            $('#button-search').on('input', function() {
-                const search = $(this).val().toLowerCase();
-                $('.button-card').each(function() {
-                    const title = $(this).find('.button-title').text().toLowerCase();
-                    const value = $(this).find('.button-value').text().toLowerCase();
-                    
-                    if (title.includes(search) || value.includes(search)) {
-                        $(this).show();
-                    } else {
-                        $(this).hide();
-                    }
-                });
-            });
-            
-            $('#button-filter-type').on('change', function() {
-                const filterType = $(this).val();
-                $('.button-card').each(function() {
-                    if (!filterType || $(this).data('type') === filterType) {
-                        $(this).show();
-                    } else {
-                        $(this).hide();
-                    }
-                });
-            });
-            
-            // Bulk actions
-            window.applyBulkAction = function() {
-                const action = $('#bulk-action-selector-top').val();
-                const selected = $('.button-checkbox:checked').map(function() {
-                    return $(this).val();
-                }).get();
-                
-                if (!action || selected.length === 0) {
-                    alert('Lütfen bir işlem seçin ve en az bir buton işaretleyin.');
-                    return;
-                }
-                
-                if (action === 'delete' && !confirm('Seçili butonları silmek istediğinizden emin misiniz?')) {
-                    return;
-                }
-                
-                $('#bulk-selected-ids').val(selected.join(','));
-                $('#bulk-action-form').submit();
-            };
-            
-            // Button preview on hover
-            $(document).on('click', '.preview-btn', function() {
-                const buttonId = $(this).data('id');
-                
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'esistenze_smart_button_preview',
-                        _wpnonce: '<?php echo wp_create_nonce("esistenze_smart_button_preview"); ?>',
-                        button_id: buttonId
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            alert('Buton önizleme: ' + response.data);
-                        }
-                    }
-                });
-            });
-            
-            // Make buttons sortable
-            if ($.fn.sortable && $('#buttons-container').length) {
-                $('#buttons-container').sortable({
-                    items: '.button-card',
-                    handle: '.button-card-header',
-                    placeholder: 'button-card-placeholder',
-                    forcePlaceholderSize: true,
-                    update: function(event, ui) {
-                        const order = $('.button-card').map(function() {
-                            return $(this).data('id');
-                        }).get();
-                        
-                        $.ajax({
-                            url: ajaxurl,
-                            type: 'POST',
-                            data: {
-                                action: 'esistenze_smart_button_reorder',
-                                _wpnonce: '<?php echo wp_create_nonce("esistenze_smart_button_reorder"); ?>',
-                                order: order
-                            }
-                        });
-                    }
-                });
-            }
-            
-            // Live form updates
-            $('input, select, textarea').on('input change', function() {
-                updatePreview();
-            });
-            
-            // Initialize
-            if ($('#button_type').val()) {
-                updateFormFields($('#button_type').val());
-            }
-            updatePreview();
-        });
-        </script>
-        <?php
     }
 }
 

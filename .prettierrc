@@ -1,0 +1,29 @@
+{
+    "tabWidth": 4,
+    "useTabs": false,
+    "semi": true,
+    "singleQuote": true,
+    "quoteProps": "as-needed",
+    "trailingComma": "none",
+    "bracketSpacing": true,
+    "bracketSameLine": false,
+    "arrowParens": "avoid",
+    "printWidth": 100,
+    "endOfLine": "lf",
+    "overrides": [
+        {
+            "files": "*.php",
+            "options": {
+                "tabWidth": 4,
+                "useTabs": true
+            }
+        },
+        {
+            "files": ["*.css", "*.scss"],
+            "options": {
+                "tabWidth": 4,
+                "useTabs": false
+            }
+        }
+    ]
+} 

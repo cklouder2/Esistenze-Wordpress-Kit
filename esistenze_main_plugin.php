@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
 
 // Plugin constants. Make sure they are defined only once to avoid warnings
 if (!defined('ESISTENZE_WP_KIT_VERSION')) {
-    define('ESISTENZE_WP_KIT_VERSION', '1.1.0');
+    define('ESISTENZE_WP_KIT_VERSION', '1.2.0');
 }
 if (!defined('ESISTENZE_WP_KIT_PATH')) {
     define('ESISTENZE_WP_KIT_PATH', plugin_dir_path(__FILE__));
@@ -129,78 +129,73 @@ class EsistenzeWPKit {
     }
     
     public function admin_menu() {
+        $cap = function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'manage_options';
         // Main menu page
         add_menu_page(
             'Esistenze WP Kit',
             'Esistenze Kit',
-            esistenze_qmc_capability(),
+            $cap,
             'esistenze-wp-kit',
             array($this, 'admin_dashboard'),
             'dashicons-admin-tools',
             30
         );
-        
         // Dashboard submenu
         add_submenu_page(
             'esistenze-wp-kit',
             'Dashboard',
             'Dashboard',
-            esistenze_qmc_capability(),
+            $cap,
             'esistenze-wp-kit',
             array($this, 'admin_dashboard')
         );
-        
         // Module submenus - only if module classes exist
         if (class_exists('EsistenzeSmartButtons') && method_exists('EsistenzeSmartButtons', 'admin_page')) {
             add_submenu_page(
                 'esistenze-wp-kit',
                 'Smart Buttons',
                 'Smart Buttons',
-                esistenze_qmc_capability(),
+                $cap,
                 'esistenze-smart-buttons',
                 array('EsistenzeSmartButtons', 'admin_page')
             );
         }
-        
         if (class_exists('EsistenzeCategoryStyler') && method_exists('EsistenzeCategoryStyler', 'admin_page')) {
             add_submenu_page(
                 'esistenze-wp-kit',
                 'Category Styler',
                 'Category Styler',
-                esistenze_qmc_capability(),
+                $cap,
                 'esistenze-category-styler',
                 array('EsistenzeCategoryStyler', 'admin_page')
             );
         }
-        
         if (class_exists('EsistenzeCustomTopbar') && method_exists('EsistenzeCustomTopbar', 'admin_page')) {
             add_submenu_page(
                 'esistenze-wp-kit',
                 'Custom Topbar',
                 'Custom Topbar',
-                esistenze_qmc_capability(),
+                $cap,
                 'esistenze-custom-topbar',
                 array('EsistenzeCustomTopbar', 'admin_page')
             );
         }
-        
         if (class_exists('EsistenzeQuickMenuCards') && method_exists('EsistenzeQuickMenuCards', 'admin_page')) {
             add_submenu_page(
                 'esistenze-wp-kit',
                 'Quick Menu Cards',
                 'Quick Menu Cards',
-                esistenze_qmc_capability(),
+                $cap,
                 'esistenze-quick-menu',
                 array('EsistenzeQuickMenuCards', 'admin_page')
             );
         }
-        
         if (class_exists('EsistenzePriceModifier') && method_exists('EsistenzePriceModifier', 'admin_page')) {
             add_submenu_page(
                 'esistenze-wp-kit',
                 'Price Modifier',
                 'Price Modifier',
-                esistenze_qmc_capability(),
+                $cap,
                 'esistenze-price-modifier',
                 array('EsistenzePriceModifier', 'admin_page')
             );

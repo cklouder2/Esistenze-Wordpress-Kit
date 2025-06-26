@@ -1,0 +1,71 @@
+{
+    "name": "esistenze/wordpress-kit",
+    "description": "Comprehensive WordPress plugin suite with Smart Product Buttons, Category Styler, Custom Topbar, Quick Menu Cards, and Price Modifier modules",
+    "type": "wordpress-plugin",
+    "version": "1.2.0",
+    "keywords": [
+        "wordpress",
+        "plugin",
+        "woocommerce",
+        "buttons",
+        "category",
+        "topbar",
+        "menu",
+        "price"
+    ],
+    "homepage": "https://github.com/esistenze/wordpress-kit",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Cem Karabulut",
+            "email": "info@esistenze.com",
+            "homepage": "https://esistenze.com",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/esistenze/wordpress-kit/issues",
+        "source": "https://github.com/esistenze/wordpress-kit"
+    },
+    "require": {
+        "php": ">=7.4",
+        "composer/installers": "^1.0||^2.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0",
+        "wp-coding-standards/wpcs": "^2.3",
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "dealerdirect/phpcodesniffer-composer-installer": "^0.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "Esistenze\\WordPressKit\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Esistenze\\WordPressKit\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "phpcs": "phpcs --standard=WordPress .",
+        "phpcbf": "phpcbf --standard=WordPress .",
+        "post-install-cmd": [
+            "vendor/bin/phpcs --config-set installed_paths vendor/wp-coding-standards/wpcs,vendor/phpcompatibility/phpcompatibility-wp"
+        ],
+        "post-update-cmd": [
+            "vendor/bin/phpcs --config-set installed_paths vendor/wp-coding-standards/wpcs,vendor/phpcompatibility/phpcompatibility-wp"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "composer/installers": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "extra": {
+        "installer-name": "esistenze-wordpress-kit"
+    }
+} 

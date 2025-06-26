@@ -13,6 +13,7 @@ class EsistenzeQuickMenuCardsAdmin {
     private $module_path;
     private $module_url;
     private $page_hooks;
+    private $capability;
     
     /**
      * Constructor
@@ -23,6 +24,7 @@ class EsistenzeQuickMenuCardsAdmin {
         $this->module_path = $module_path;
         $this->module_url = $module_url;
         $this->page_hooks = array();
+        $this->capability = $this->determine_capability();
         $this->init_hooks();
     }
     
@@ -45,59 +47,63 @@ class EsistenzeQuickMenuCardsAdmin {
     }
     
     /**
+     * Safely determine capability
+     * @return string
+     */
+    private function determine_capability(): string {
+        if (function_exists('esistenze_qmc_capability')) {
+            return esistenze_qmc_capability();
+        }
+        return 'manage_options';
+    }
+    
+    /**
      * Register admin menu and submenus
      * @return void
      */
     public function admin_menu(): void {
-        // Ana menü
+        $cap = $this->capability;
         $this->page_hooks['main'] = add_menu_page(
             'Quick Menu Cards',
             'Quick Menu Cards',
-            esistenze_qmc_capability(),
+            $cap,
             'esistenze-quick-menu',
             array($this, 'admin_page'),
             'dashicons-grid-view',
             30
         );
-        
-        // Alt menüler
         $this->page_hooks['groups'] = add_submenu_page(
             'esistenze-quick-menu',
             'Kart Grupları',
             'Kart Grupları',
-            esistenze_qmc_capability(),
+            $cap,
             'esistenze-quick-menu',
             array($this, 'admin_page')
         );
-        
         $this->page_hooks['settings'] = add_submenu_page(
             'esistenze-quick-menu',
             'Ayarlar',
             'Ayarlar',
-            esistenze_qmc_capability(),
+            $cap,
             'esistenze-quick-menu-settings',
             array($this, 'settings_page')
         );
-        
         $this->page_hooks['analytics'] = add_submenu_page(
             'esistenze-quick-menu',
             'İstatistikler',
             'İstatistikler',
-            esistenze_qmc_capability(),
+            $cap,
             'esistenze-quick-menu-analytics',
             array($this, 'analytics_page')
         );
-        
         $this->page_hooks['tools'] = add_submenu_page(
             'esistenze-quick-menu',
             'Araçlar',
             'Araçlar',
-            esistenze_qmc_capability(),
+            $cap,
             'esistenze-quick-menu-tools',
             array($this, 'tools_page')
         );
-        
-        // Kontextüel yardım ekle
         foreach ($this->page_hooks as $hook) {
             add_action('load-' . $hook, array($this, 'add_contextual_help'));
         }
@@ -196,9 +202,19 @@ class EsistenzeQuickMenuCardsAdmin {
      * @return void
      */
     public function admin_page(): void {
-        // Yetki kontrolü
-        if (!current_user_can(esistenze_qmc_capability())) {
-            wp_die(__('Bu sayfaya erişim yetkiniz bulunmuyor.'));
+        if (!current_user_can($this->capability)) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                echo '<div class="notice notice-error"><strong>Quick Menu Cards Debug:</strong> Permission denied.<br>';
+                echo 'Current user: ' . esc_html(wp_get_current_user()->user_login) . '<br>';
+                echo 'Roles: ' . esc_html(implode(", ", wp_get_current_user()->roles)) . '<br>';
+                echo 'Required: ' . esc_html($this->capability) . '<br>';
+                echo 'Capabilities: <pre>';
+                print_r(wp_get_current_user()->allcaps);
+                echo '</pre></div>';
+            } else {
+                wp_die(__('Bu sayfaya erişim yetkiniz bulunmuyor.', 'esistenze-wp-kit'));
+            }
+            return;
         }
         
         $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'groups';
@@ -330,8 +346,7 @@ class EsistenzeQuickMenuCardsAdmin {
      * @return void
      */
     public function settings_page(): void {
-        // Yetki kontrolü
-        if (!current_user_can(esistenze_qmc_capability())) {
+        if (!current_user_can($this->capability)) {
             wp_die(__('Bu sayfaya erişim yetkiniz bulunmuyor.'));
         }
         
@@ -351,8 +366,7 @@ class EsistenzeQuickMenuCardsAdmin {
      * @return void
      */
     public function analytics_page(): void {
-        // Yetki kontrolü
-        if (!current_user_can(esistenze_qmc_capability())) {
+        if (!current_user_can($this->capability)) {
             wp_die(__('Bu sayfaya erişim yetkiniz bulunmuyor.'));
         }
         
@@ -374,8 +388,7 @@ class EsistenzeQuickMenuCardsAdmin {
      * @return void
      */
     public function tools_page(): void {
-        // Yetki kontrolü
-        if (!current_user_can(esistenze_qmc_capability())) {
+        if (!current_user_can($this->capability)) {
             wp_die(__('Bu sayfaya erişim yetkiniz bulunmuyor.'));
         }
         
@@ -394,7 +407,7 @@ class EsistenzeQuickMenuCardsAdmin {
      * @return void
      */
     public function handle_save_group(): void {
-        if (!wp_verify_nonce($_POST['_wpnonce'], 'esistenze_save_group') || !current_user_can(esistenze_qmc_capability())) {
+        if (!wp_verify_nonce($_POST['_wpnonce'], 'esistenze_save_group') || !current_user_can($this->capability)) {
             wp_die('Yetkisiz erişim.');
         }
         
@@ -458,7 +471,7 @@ class EsistenzeQuickMenuCardsAdmin {
      * @return void
      */
     public function handle_delete_group(): void {
-        if (!wp_verify_nonce($_GET['_wpnonce'], 'esistenze_delete_group') || !current_user_can(esistenze_qmc_capability())) {
+        if (!wp_verify_nonce($_GET['_wpnonce'], 'esistenze_delete_group') || !current_user_can($this->capability)) {
             wp_die('Yetkisiz erişim.');
         }
         
@@ -490,7 +503,7 @@ class EsistenzeQuickMenuCardsAdmin {
     }
     
     private function save_settings($post_data) {
-        if (!current_user_can(esistenze_qmc_capability())) {
+        if (!current_user_can($this->capability)) {
             wp_die('Yetkiniz yok.');
         }
         
@@ -519,7 +532,7 @@ class EsistenzeQuickMenuCardsAdmin {
         if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce')) {
             wp_send_json_error('Nonce doğrulaması başarısız.');
         }
-        if (!current_user_can(esistenze_qmc_capability())) {
+        if (!current_user_can($this->capability)) {
             wp_send_json_error('Yetkisiz erişim.');
         }
         
@@ -1106,7 +1119,7 @@ class EsistenzeQuickMenuCardsAdmin {
      * @return array
      */
     public function debug_info(): array {
-        if (!current_user_can(esistenze_qmc_capability()) || !defined('WP_DEBUG') || !WP_DEBUG) {
+        if (!current_user_can($this->capability) || !defined('WP_DEBUG') || !WP_DEBUG) {
             return;
         }
         
