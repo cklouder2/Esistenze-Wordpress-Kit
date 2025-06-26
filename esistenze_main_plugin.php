@@ -12,11 +12,19 @@ if (!defined('ABSPATH')) {
     exit; // Direct access prevention
 }
 
-// Plugin constants
-define('ESISTENZE_WP_KIT_VERSION', '1.0.1');
-define('ESISTENZE_WP_KIT_PATH', plugin_dir_path(__FILE__));
-define('ESISTENZE_WP_KIT_URL', plugin_dir_url(__FILE__));
+// Plugin constants. Make sure they are defined only once to avoid warnings
+if (!defined('ESISTENZE_WP_KIT_VERSION')) {
+    define('ESISTENZE_WP_KIT_VERSION', '1.0.1');
+}
+if (!defined('ESISTENZE_WP_KIT_PATH')) {
+    define('ESISTENZE_WP_KIT_PATH', plugin_dir_path(__FILE__));
+}
+if (!defined('ESISTENZE_WP_KIT_URL')) {
+    define('ESISTENZE_WP_KIT_URL', plugin_dir_url(__FILE__));
+}
 
+// Prevent class redeclaration if the plugin is included twice
+if (!class_exists('EsistenzeWPKit')) {
 class EsistenzeWPKit {
     
     private static $instance = null;
@@ -445,3 +453,4 @@ class EsistenzeWPKit {
 
 // Initialize the plugin
 EsistenzeWPKit::getInstance();
+}
