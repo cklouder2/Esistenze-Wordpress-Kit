@@ -390,7 +390,63 @@ class EsistenzeCategoryStyler {
     }
     
     public static function admin_page() {
-        // Implementation will go here
+        $defaults  = self::getInstance()->get_default_settings();
+        $settings  = get_option('esistenze_category_styler_settings', $defaults);
+        $custom_css = get_option('esistenze_custom_category_css', '');
+
+        ?>
+        <div class="wrap">
+            <h1>Category Styler Ayarları</h1>
+            <form method="post" action="options.php">
+                <?php settings_fields('esistenza_category_styler'); ?>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row">Eklentiyi Etkinleştir</th>
+                        <td>
+                            <input type="checkbox" name="esistenze_category_styler_settings[enabled]" value="1" <?php checked($settings['enabled']); ?> />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="grid_columns">Grid Sütunları</label></th>
+                        <td>
+                            <input type="number" class="small-text" id="grid_columns" name="esistenze_category_styler_settings[grid_columns]" value="<?php echo esc_attr($settings['grid_columns']); ?>" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="card_min_width">Kart Min. Genişliği</label></th>
+                        <td>
+                            <input type="number" class="small-text" id="card_min_width" name="esistenze_category_styler_settings[card_min_width]" value="<?php echo esc_attr($settings['card_min_width']); ?>" /> px
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="grid_gap">Grid Boşluğu</label></th>
+                        <td>
+                            <input type="number" class="small-text" id="grid_gap" name="esistenze_category_styler_settings[grid_gap]" value="<?php echo esc_attr($settings['grid_gap']); ?>" /> px
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Ürün Sayısını Göster</th>
+                        <td>
+                            <input type="checkbox" name="esistenze_category_styler_settings[show_product_count]" value="1" <?php checked($settings['show_product_count']); ?> />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Animasyonları Etkinleştir</th>
+                        <td>
+                            <input type="checkbox" name="esistenze_category_styler_settings[enable_animations]" value="1" <?php checked($settings['enable_animations']); ?> />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="custom_css">Özel CSS</label></th>
+                        <td>
+                            <textarea id="custom_css" name="esistenze_custom_category_css" rows="5" class="large-text"><?php echo esc_textarea($custom_css); ?></textarea>
+                        </td>
+                    </tr>
+                </table>
+                <?php submit_button(); ?>
+            </form>
+        </div>
+        <?php
     }
     
     private function get_default_settings() {
