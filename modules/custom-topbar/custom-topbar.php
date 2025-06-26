@@ -1900,8 +1900,53 @@ class EsistenzeCustomTopbar {
     // AJAX handlers
     public function ajax_topbar_preview() {
         check_ajax_referer('esistenze_topbar_preview');
-        // Implementation for live preview
-        wp_send_json_success('Preview updated');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+
+        $posted_settings = $_POST['settings'] ?? array();
+        $settings = array_merge(self::get_default_settings(), $posted_settings);
+        $settings = self::sanitize_settings($settings);
+
+        ob_start();
+
+        // Include dynamic CSS for the preview
+        $css = $this->generate_dynamic_css($settings);
+        if (!empty($css)) {
+            echo '<style>' . $css . '</style>';
+        }
+        if (!empty($settings['custom_css'])) {
+            echo '<style>' . $settings['custom_css'] . '</style>';
+        }
+
+        $style_vars = $this->get_css_variables($settings);
+        echo '<div class="esistenza-top-bar" ' . $style_vars . '>';
+        echo '<div class="esistenza-top-bar-left">';
+        if (!empty($settings['menu_id'])) {
+            $this->render_menu($settings);
+        }
+        if (!empty($settings['show_social_media']) && $settings['social_position'] === 'left') {
+            $this->render_social_media($settings);
+        }
+        echo '</div>';
+
+        if (!empty($settings['show_social_media']) && $settings['social_position'] === 'center') {
+            echo '<div class="esistenza-top-bar-center">';
+            $this->render_social_media($settings);
+            echo '</div>';
+        }
+
+        echo '<div class="esistenza-top-bar-right">';
+        $this->render_contact_info($settings);
+        if (!empty($settings['show_social_media']) && $settings['social_position'] === 'right') {
+            $this->render_social_media($settings);
+        }
+        echo '</div>';
+        echo '</div>';
+
+        $html = ob_get_clean();
+
+        wp_send_json_success($html);
     }
     
     public function ajax_reset_topbar() {
@@ -1921,7 +1966,26 @@ class EsistenzeCustomTopbar {
     
     public function ajax_import_settings() {
         check_ajax_referer('esistenze_topbar_import');
-        // Implementation for settings import
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+
+        if (empty($_FILES['file']['tmp_name'])) {
+            wp_send_json_error('No file uploaded');
+        }
+
+        $json = file_get_contents($_FILES['file']['tmp_name']);
+        $data = json_decode($json, true);
+
+        if (!is_array($data)) {
+            wp_send_json_error('Invalid JSON file');
+        }
+
+        $settings = array_merge(self::get_default_settings(), $data);
+        $settings = self::sanitize_settings($settings);
+
+        update_option('esistenze_topbar_settings', $settings);
+
         wp_send_json_success('Settings imported');
     }
     
