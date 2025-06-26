@@ -2,7 +2,7 @@
 /*
 Plugin Name: Esistenze WordPress Kit
 Description: Kapsamlı WordPress eklenti paketi - Smart Product Buttons, Category Styler, Custom Topbar ve Price Modifier modüllerini içerir.
-Version: 2.0.0
+Version: 2.1.0
 Author: Cem Karabulut - Esistenze
 Text Domain: esistenze-wp-kit
 Domain Path: /languages
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 
 // Plugin constants. Make sure they are defined only once to avoid warnings
 if (!defined('ESISTENZE_WP_KIT_VERSION')) {
-    define('ESISTENZE_WP_KIT_VERSION', '2.0.0');
+    define('ESISTENZE_WP_KIT_VERSION', '2.1.0');
 }
 if (!defined('ESISTENZE_WP_KIT_PATH')) {
     define('ESISTENZE_WP_KIT_PATH', plugin_dir_path(__FILE__));
@@ -81,6 +81,12 @@ class EsistenzeWPKit {
         if (file_exists($migration_file)) {
             require_once $migration_file;
         }
+        
+        // Load base module class and traits
+        $base_module_file = ESISTENZE_WP_KIT_PATH . 'includes/class-base-module.php';
+        if (file_exists($base_module_file)) {
+            require_once $base_module_file;
+        }
     }
     
     private function safe_load_modules() {
@@ -97,10 +103,17 @@ class EsistenzeWPKit {
                 'price-modifier' => 'EsistenzePriceModifier'
             );
 
+            // Modules dizininin var olup olmadığını kontrol et
+            if (!is_dir($modules_path)) {
+                $this->loaded_modules['error'] = 'Modules directory not found: ' . $modules_path;
+                return;
+            }
+
             // Gerçek klasör adlarını bulmak için modules dizinini tara
             $module_folders = glob($modules_path . '*', GLOB_ONLYDIR);
             
             if (empty($module_folders)) {
+                $this->loaded_modules['error'] = 'No module folders found in: ' . $modules_path;
                 return;
             }
 
@@ -112,35 +125,40 @@ class EsistenzeWPKit {
             }
 
             foreach ($modules_to_load as $module_key => $class_name) {
-                // Eşleşen klasör adını bul
-                if (isset($actual_folder_map[$module_key])) {
-                    $actual_folder = $actual_folder_map[$module_key];
-                    // Dosya adını da modül anahtarıyla eşleştir (genellikle aynıdır)
-                    $module_file = $modules_path . $actual_folder . '/' . $module_key . '.php';
-                } else {
-                    $this->loaded_modules[$module_key] = 'Klasör bulunamadı (aranan: ' . $module_key . ')';
-                    continue;
-                }
-                
-                if (file_exists($module_file)) {
-                    include_once $module_file;
-                    
-                    // Check if class exists before initializing
-                    if (class_exists($class_name)) {
-                        // Add to loaded modules for debugging
-                        $this->loaded_modules[$module_key] = true;
+                try {
+                    // Eşleşen klasör adını bul
+                    if (isset($actual_folder_map[$module_key])) {
+                        $actual_folder = $actual_folder_map[$module_key];
+                        // Dosya adını da modül anahtarıyla eşleştir (genellikle aynıdır)
+                        $module_file = $modules_path . $actual_folder . '/' . $module_key . '.php';
                     } else {
-                        // Log error if class doesn't exist
-                        $this->loaded_modules[$module_key] = 'Class not found: ' . $class_name;
+                        $this->loaded_modules[$module_key] = 'Klasör bulunamadı (aranan: ' . $module_key . ')';
+                        continue;
                     }
-                } else {
-                    // Log error if file doesn't exist
-                    $this->loaded_modules[$module_key] = 'File not found: ' . $module_file;
+                    
+                    if (file_exists($module_file) && is_readable($module_file)) {
+                        // Dosya güvenli bir şekilde include et
+                        include_once $module_file;
+                        
+                        // Check if class exists before initializing
+                        if (class_exists($class_name)) {
+                            // Add to loaded modules for debugging
+                            $this->loaded_modules[$module_key] = true;
+                        } else {
+                            // Log error if class doesn't exist
+                            $this->loaded_modules[$module_key] = 'Class not found: ' . $class_name;
+                        }
+                    } else {
+                        // Log error if file doesn't exist or isn't readable
+                        $this->loaded_modules[$module_key] = 'File not found or not readable: ' . $module_file;
+                    }
+                } catch (Exception $module_error) {
+                    $this->loaded_modules[$module_key] = 'Module error: ' . $module_error->getMessage();
                 }
             }
         } catch (Exception $e) {
             // Log exception for debugging
-            $this->loaded_modules['error'] = $e->getMessage();
+            $this->loaded_modules['error'] = 'General error: ' . $e->getMessage();
         }
     }
     
@@ -170,8 +188,9 @@ class EsistenzeWPKit {
     }
     
     public function admin_menu() {
-        // Admin paneli için güvenli yetki seviyesi
-        $cap = 'edit_posts';
+        // Admin paneli için güvenli yetki seviyesi - modüllerle uyumlu olması için manage_options kullanıyoruz
+        $cap = function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'manage_options';
+        
         // Main menu page
         add_menu_page(
             'Esistenze WP Kit',
@@ -182,6 +201,7 @@ class EsistenzeWPKit {
             'dashicons-admin-tools',
             30
         );
+        
         // Dashboard submenu
         add_submenu_page(
             'esistenze-wp-kit',
@@ -192,39 +212,8 @@ class EsistenzeWPKit {
             array($this, 'admin_dashboard')
         );
         
-        // Module submenus - only if module classes exist
-        // Smart Buttons adds its own menu in its class
-        if (class_exists('EsistenzeCategoryStyler') && method_exists('EsistenzeCategoryStyler', 'admin_page')) {
-            add_submenu_page(
-                'esistenze-wp-kit',
-                'Category Styler',
-                'Category Styler',
-                $cap,
-                'esistenze-category-styler',
-                array('EsistenzeCategoryStyler', 'admin_page')
-            );
-        }
-        if (class_exists('EsistenzeCustomTopbar') && method_exists('EsistenzeCustomTopbar', 'admin_page')) {
-            add_submenu_page(
-                'esistenze-wp-kit',
-                'Custom Topbar',
-                'Custom Topbar',
-                $cap,
-                'esistenze-custom-topbar',
-                array('EsistenzeCustomTopbar', 'admin_page')
-            );
-        }
-        // Price Modifier
-        if (class_exists('EsistenzePriceModifier') && method_exists('EsistenzePriceModifier', 'admin_page')) {
-            add_submenu_page(
-                'esistenze-wp-kit',
-                'Price Modifier',
-                'Price Modifier',
-                $cap,
-                'esistenze-price-modifier',
-                array('EsistenzePriceModifier', 'admin_page')
-            );
-        }
+        // Module submenus are now registered by modules themselves in their init() methods
+        // This provides better encapsulation and allows for more flexible menu management
     }
     
     public function admin_dashboard() {
@@ -428,4 +417,12 @@ class EsistenzeWPKit {
 // Initialize the plugin
 EsistenzeWPKit::getInstance();
 
+}
+
+/**
+ * Get capability for quality management control
+ * @return string
+ */
+function esistenze_qmc_capability() {
+    return 'manage_options'; // WordPress admin capability
 }

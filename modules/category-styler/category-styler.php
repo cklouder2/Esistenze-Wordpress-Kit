@@ -12,62 +12,103 @@ if (!defined('ABSPATH')) {
  * Category Styler Module
  * Part of Esistenze WordPress Kit
  */
-class EsistenzeCategoryStyler {
-    
-    private static $instance = null;
+class EsistenzeCategoryStyler extends EsistenzeBaseModule {
     
     /**
-     * Get singleton instance
-     * @return self
+     * Get module name
+     * @return string
      */
-    public static function getInstance(): self {
-        if (self::$instance === null) {
-            self::$instance = new self();
-        }
-        return self::$instance;
+    protected function getModuleName(): string {
+        return 'category-styler';
     }
     
     /**
-     * Constructor
+     * Get settings option name
+     * @return string
      */
-    private function __construct() {
-        // Use init hook for all initialization to avoid "load textdomain too early" error
-        add_action('init', array($this, 'init'));
-        // Load textdomain for translations
-        add_action('plugins_loaded', array($this, 'load_textdomain'));
+    protected function getSettingsOptionName(): string {
+        return 'esistenze_category_styler_settings';
     }
     
     /**
-     * Load plugin textdomain for translations
-     * @return void
+     * Get default settings
+     * @return array
      */
-    public function load_textdomain(): void {
-        load_plugin_textdomain('esistenze-wp-kit', false, dirname(plugin_basename(__FILE__)) . '/languages');
+    protected function getDefaultSettings(): array {
+        return [
+            'enabled' => true,
+            'grid_columns' => 'auto',
+            'card_min_width' => 250,
+            'grid_gap' => 20,
+            'hide_price_hover' => true,
+            'enable_animations' => true,
+            'show_product_count' => false,
+            'lazy_load_images' => false,
+            'card_bg_color' => '#ffffff',
+            'card_bg_gradient' => '#f8f8f8',
+            'card_border_width' => 1,
+            'card_border_color' => '#e0e0e0',
+            'card_border_radius' => 15,
+            'shadow_x' => 0,
+            'shadow_y' => 8,
+            'shadow_blur' => 20,
+            'shadow_opacity' => 0.1,
+            'title_font_size' => 20,
+            'title_font_weight' => '600',
+            'title_color' => '#2c3e50',
+            'desc_font_size' => 14,
+            'desc_color' => '#7f8c8d',
+            'hover_scale' => true,
+            'hover_lift' => true,
+            'hover_shadow_intensity' => 0.2,
+            'image_size' => 'medium',
+            'enable_caching' => true,
+            'cache_duration' => 43200,
+            'debug_mode' => false,
+            'minify_css' => false,
+            'inline_critical_css' => false
+        ];
     }
     
     /**
-     * Init hooks and shortcodes
+     * Initialize module
      * @return void
      */
     public function init(): void {
         // Register shortcode
-        add_shortcode('esistenze_display_categories', array($this, 'display_styled_categories'));
+        add_shortcode('esistenze_display_categories', [$this, 'displayStyledCategories']);
         
-        // Enqueue styles
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_styles'), 999);
+        // Frontend hooks
+        $this->addAction('wp_enqueue_scripts', [$this, 'enqueueStyles'], 999);
         
-        // Admin init
-        add_action('admin_init', array($this, 'register_settings'));
-        add_action('wp_ajax_esistenze_category_preview', array($this, 'ajax_category_preview'));
-        add_action('wp_ajax_esistenze_reset_category_stats', array($this, 'ajax_reset_stats'));
+        // Admin hooks
+        $this->addAction('admin_init', [$this, 'registerSettings']);
+        $this->addAction('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
+        
+        // AJAX hooks
+        $this->addAction('wp_ajax_esistenze_category_preview', [$this, 'ajaxCategoryPreview']);
+        $this->addAction('wp_ajax_esistenza_reset_category_stats', [$this, 'ajaxResetStats']);
+    }
+    
+    /**
+     * Register admin menus
+     * @return void
+     */
+    public function registerAdminMenus(): void {
+        $this->registerAdminSubmenu(
+            'Category Styler',
+            'Category Styler',
+            'esistenze-category-styler',
+            [$this, 'adminPage']
+        );
     }
     
     /**
      * Register plugin settings
      * @return void
      */
-    public function register_settings(): void {
-        register_setting('esistenza_category_styler', 'esistenze_category_styler_settings');
+    public function registerSettings(): void {
+        register_setting('esistenza_category_styler', $this->settingsOptionName);
         register_setting('esistenza_category_styler', 'esistenze_custom_category_css');
     }
     
@@ -76,7 +117,7 @@ class EsistenzeCategoryStyler {
      * @param array $atts
      * @return string
      */
-    public function display_styled_categories(array $atts): string {
+    public function displayStyledCategories(array $atts): string {
         $atts = shortcode_atts(array(
             'limit' => '',
             'orderby' => 'name',
@@ -97,16 +138,16 @@ class EsistenzeCategoryStyler {
             $args['number'] = intval($atts['limit']);
         }
         
+        // Get settings with caching
+        $settings = $this->getSettings($this->settingsOptionName, $this->getDefaultSettings());
+        
         // Check cache first
-        $settings = get_option('esistenze_category_styler_settings', array());
-        $cache_key = 'esistenze_categories_' . md5(serialize($args));
+        $cache_key = $this->generateCacheKey($args);
         
         if (!empty($settings['enable_caching'])) {
-            $categories = wp_cache_get($cache_key, 'esistenza');
-            if ($categories === false) {
-                $categories = get_terms($args);
-                wp_cache_set($cache_key, $categories, 'esistenze', $settings['cache_duration'] ?? 43200);
-            }
+            $categories = $this->remember($cache_key, function() use ($args) {
+                return get_terms($args);
+            }, $settings['cache_duration'] ?? 43200);
         } else {
             $categories = get_terms($args);
         }
@@ -187,26 +228,30 @@ class EsistenzeCategoryStyler {
      * Enqueue frontend styles and dynamic CSS
      * @return void
      */
-    public function enqueue_styles(): void {
-        $settings = get_option('esistenze_category_styler_settings', $this->get_default_settings());
+    public function enqueueStyles(): void {
+        $settings = $this->getSettings($this->settingsOptionName, $this->getDefaultSettings());
         
         if (empty($settings['enabled'])) {
             return;
         }
         
-        // Generate dynamic CSS
-        $dynamic_css = $this->generate_dynamic_css($settings);
+        // Generate dynamic CSS with caching
+        $css_cache_key = 'dynamic_css_' . md5(serialize($settings));
+        $dynamic_css = $this->remember($css_cache_key, function() use ($settings) {
+            return $this->generateDynamicCss($settings);
+        }, 3600); // Cache for 1 hour
         
         // Enqueue main stylesheet
-        wp_enqueue_style('esistenza-category-styler', ESISTENZE_WP_KIT_URL . 'modules/category-styler/assets/style.css', array(), ESISTENZE_WP_KIT_VERSION);
+        wp_enqueue_style(
+            'esistenza-category-styler',
+            $this->getAssetUrl('style.css'),
+            [],
+            ESISTENZE_WP_KIT_VERSION
+        );
         
         // Add dynamic CSS
         if (!empty($dynamic_css)) {
-            if (!empty($settings['inline_critical_css'])) {
-                wp_add_inline_style('esistenza-category-styler', $dynamic_css);
-            } else {
-                wp_add_inline_style('esistenza-category-styler', $dynamic_css);
-            }
+            wp_add_inline_style('esistenza-category-styler', $dynamic_css);
         }
         
         // Add custom CSS
@@ -227,105 +272,71 @@ class EsistenzeCategoryStyler {
         }
     }
     
-    private function generate_dynamic_css($settings) {
-        $css = '';
-        
-        // Grid settings
-        if ($settings['grid_columns'] === 'auto') {
-            $css .= '.esistenza-category-styler-grid { grid-template-columns: repeat(auto-fit, minmax(' . intval($settings['card_min_width']) . 'px, 1fr)); }';
-        } else {
-            $css .= '.esistanza-category-styler-grid { grid-template-columns: repeat(' . intval($settings['grid_columns']) . ', 1fr); }';
-        }
-        
-        $css .= '.esistanza-category-styler-grid { gap: ' . intval($settings['grid_gap']) . 'px; }';
-        
-        // Card styling
-        $css .= '.esistenza-category-styler-item {';
-        $css .= 'background: linear-gradient(to bottom, ' . $settings['card_bg_color'] . ', ' . $settings['card_bg_gradient'] . ');';
-        $css .= 'border: ' . intval($settings['card_border_width']) . 'px solid ' . $settings['card_border_color'] . ';';
-        $css .= 'border-radius: ' . intval($settings['card_border_radius']) . 'px;';
-        $css .= 'box-shadow: ' . intval($settings['shadow_x']) . 'px ' . intval($settings['shadow_y']) . 'px ' . intval($settings['shadow_blur']) . 'px rgba(0,0,0,' . floatval($settings['shadow_opacity']) . ');';
-        $css .= '}';
-        
-        // Typography
-        $css .= '.esistanza-category-styler-title {';
-        $css .= 'font-size: ' . intval($settings['title_font_size']) . 'px;';
-        $css .= 'font-weight: ' . $settings['title_font_weight'] . ';';
-        $css .= 'color: ' . $settings['title_color'] . ';';
-        $css .= '}';
-        
-        $css .= '.esistanza-category-styler-description {';
-        $css .= 'font-size: ' . intval($settings['desc_font_size']) . 'px;';
-        $css .= 'color: ' . $settings['desc_color'] . ';';
-        $css .= '}';
-        
-        // Hover effects
-        if (!empty($settings['enable_animations'])) {
-            $css .= '.esistenza-category-styler-item { transition: all 0.3s ease; }';
+    private function generateDynamicCss($settings) {
+        try {
+            $css = '';
             
-            $hover_effects = array();
-            if (!empty($settings['hover_scale'])) {
-                $hover_effects[] = 'scale(1.05)';
-            }
-            if (!empty($settings['hover_lift'])) {
-                $hover_effects[] = 'translateY(-5px)';
+            // Güvenli değerler için fallback'ler ekle
+            $grid_columns = isset($settings['grid_columns']) ? $settings['grid_columns'] : 'auto';
+            $card_min_width = isset($settings['card_min_width']) ? intval($settings['card_min_width']) : 250;
+            $grid_gap = isset($settings['grid_gap']) ? intval($settings['grid_gap']) : 20;
+            
+            // Grid settings
+            if ($grid_columns === 'auto') {
+                $css .= '.esistenza-category-styler-grid { grid-template-columns: repeat(auto-fit, minmax(' . $card_min_width . 'px, 1fr)); }';
+            } else {
+                $css .= '.esistanza-category-styler-grid { grid-template-columns: repeat(' . intval($grid_columns) . ', 1fr); }';
             }
             
-            if (!empty($hover_effects)) {
-                $css .= '.esistanza-category-styler-item:hover { transform: ' . implode(' ', $hover_effects) . '; }';
-            }
+            $css .= '.esistanza-category-styler-grid { gap: ' . $grid_gap . 'px; }';
             
-            $css .= '.esistanza-category-styler-item:hover {';
-            $css .= 'box-shadow: ' . intval($settings['shadow_x']) . 'px ' . (intval($settings['shadow_y']) + 5) . 'px ' . (intval($settings['shadow_blur']) + 10) . 'px rgba(0,0,0,' . floatval($settings['hover_shadow_intensity']) . ');';
+            // Temel card styling (güvenli fallback değerlerle)
+            $card_bg_color = isset($settings['card_bg_color']) ? esc_attr($settings['card_bg_color']) : '#ffffff';
+            $card_bg_gradient = isset($settings['card_bg_gradient']) ? esc_attr($settings['card_bg_gradient']) : '#f8f8f8';
+            $card_border_width = isset($settings['card_border_width']) ? intval($settings['card_border_width']) : 1;
+            $card_border_color = isset($settings['card_border_color']) ? esc_attr($settings['card_border_color']) : '#e0e0e0';
+            $card_border_radius = isset($settings['card_border_radius']) ? intval($settings['card_border_radius']) : 15;
+            
+            $css .= '.esistenza-category-styler-item {';
+            $css .= 'background: linear-gradient(to bottom, ' . $card_bg_color . ', ' . $card_bg_gradient . ');';
+            $css .= 'border: ' . $card_border_width . 'px solid ' . $card_border_color . ';';
+            $css .= 'border-radius: ' . $card_border_radius . 'px;';
+            $css .= 'padding: 15px;';
+            $css .= 'text-align: center;';
             $css .= '}';
+            
+            // Typography (güvenli fallback değerlerle)
+            $title_font_size = isset($settings['title_font_size']) ? intval($settings['title_font_size']) : 20;
+            $title_color = isset($settings['title_color']) ? esc_attr($settings['title_color']) : '#2c3e50';
+            
+            $css .= '.esistenza-category-styler-title {';
+            $css .= 'font-size: ' . $title_font_size . 'px;';
+            $css .= 'color: ' . $title_color . ';';
+            $css .= 'margin: 10px 0 5px;';
+            $css .= '}';
+            
+            // Description styling
+            $desc_font_size = isset($settings['desc_font_size']) ? intval($settings['desc_font_size']) : 14;
+            $desc_color = isset($settings['desc_color']) ? esc_attr($settings['desc_color']) : '#7f8c8d';
+            
+            $css .= '.esistenza-category-styler-description {';
+            $css .= 'font-size: ' . $desc_font_size . 'px;';
+            $css .= 'color: ' . $desc_color . ';';
+            $css .= 'margin: 0;';
+            $css .= '}';
+            
+            // Basit hover effect
+            if (!empty($settings['enable_animations'])) {
+                $css .= '.esistenza-category-styler-item { transition: all 0.3s ease; }';
+                $css .= '.esistenza-category-styler-item:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }';
+            }
+            
+            return $css;
+            
+        } catch (Exception $e) {
+            // Hata durumunda boş CSS döndür
+            return '';
         }
-        
-        // Sidebar styling
-        $css .= '#nav_menu-3 .widget_nav_menu h4, #nav_menu-7 .widget_nav_menu h4 {';
-        $css .= 'background: linear-gradient(90deg, ' . $settings['sidebar_header_bg_start'] . ', ' . $settings['sidebar_header_bg_end'] . ');';
-        $css .= 'color: ' . $settings['sidebar_header_color'] . ';';
-        $css .= 'font-size: ' . intval($settings['sidebar_header_font_size']) . 'px;';
-        $css .= '}';
-        
-        $css .= '#nav_menu-3 .menu li, #nav_menu-7 .menu li {';
-        $css .= 'background: ' . $settings['sidebar_item_bg'] . ';';
-        $css .= '}';
-        
-        $css .= '#nav_menu-3 .menu li:hover, #nav_menu-7 .menu li:hover {';
-        $css .= 'background: ' . $settings['sidebar_item_hover_bg'] . ';';
-        $css .= '}';
-        
-        $css .= '#nav_menu-3 .menu li a, #nav_menu-7 .menu li a {';
-        $css .= 'color: ' . $settings['sidebar_item_color'] . ';';
-        $css .= '}';
-        
-        $css .= '#nav_menu-3 .menu li a:hover, #nav_menu-7 .menu li a:hover {';
-        $css .= 'color: ' . $settings['sidebar_item_hover_color'] . ';';
-        $css .= '}';
-        
-        $css .= '#nav_menu-3 .menu li.current-menu-item a, #nav_menu-7 .menu li.current-menu-item a {';
-        $css .= 'background: ' . $settings['sidebar_active_bg'] . ';';
-        $css .= 'border-left: ' . intval($settings['sidebar_active_border_width']) . 'px solid ' . $settings['sidebar_active_border'] . ';';
-        $css .= '}';
-        
-        // Page header styling
-        $css .= '#page-header-wrap {';
-        $css .= 'background: linear-gradient(135deg, ' . $settings['header_bg_start'] . ' 0%, ' . $settings['header_bg_middle'] . ' 70%, ' . $settings['header_bg_end'] . ' 100%) !important;';
-        $css .= 'height: ' . intval($settings['header_height']) . 'px;';
-        $css .= '}';
-        
-        $css .= '#page-header-wrap .inner-wrap h1 {';
-        $css .= 'font-size: ' . intval($settings['header_title_size']) . 'px;';
-        $css .= 'color: ' . $settings['header_title_color'] . ';';
-        $css .= 'background: rgba(0, 0, 0, ' . floatval($settings['header_title_bg_opacity']) . ');';
-        $css .= '}';
-        
-        // Minify CSS if enabled
-        if (!empty($settings['minify_css'])) {
-            $css = $this->minify_css($css);
-        }
-        
-        return $css;
     }
     
     private function minify_css($css) {
@@ -367,7 +378,7 @@ class EsistenzeCategoryStyler {
      * AJAX: Category preview
      * @return void
      */
-    public function ajax_category_preview(): void {
+    public function ajaxCategoryPreview(): void {
         check_ajax_referer('esistanza_category_preview');
         
         $settings = $_POST['settings'] ?? array();
@@ -382,7 +393,7 @@ class EsistenzeCategoryStyler {
      * AJAX: Reset category stats
      * @return void
      */
-    public function ajax_reset_stats(): void {
+    public function ajaxResetStats(): void {
         check_ajax_referer('esistenza_reset_stats');
         if (!current_user_can(esistenze_qmc_capability())) {
             wp_send_json_error(__('Insufficient permissions', 'esistenze-wp-kit'));
@@ -435,20 +446,20 @@ class EsistenzeCategoryStyler {
      * Render admin page
      * @return void
      */
-    public static function admin_page(): void {
-        if (!current_user_can(esistenze_qmc_capability())) {
-            wp_die(__('Bu sayfaya erişim yetkiniz bulunmuyor.', 'esistenze-wp-kit'));
+    public function adminPage(): void {
+        if (!$this->canAccessAdmin()) {
+            $this->denyAccess();
         }
-        $defaults  = self::getInstance()->get_default_settings();
-        $settings  = get_option('esistenze_category_styler_settings', $defaults);
+        
+        $settings = $this->getSettings($this->settingsOptionName, $this->getDefaultSettings());
         $custom_css = get_option('esistenze_custom_category_css', '');
 
+        $this->renderAdminHeader(__('Category Styler Ayarları', 'esistenze-wp-kit'));
+        
         ?>
-        <div class="wrap">
-            <h1><?php _e('Category Styler Ayarları', 'esistenze-wp-kit'); ?></h1>
-            <form method="post" action="options.php">
-                <?php settings_fields('esistenza_category_styler'); ?>
-                <table class="form-table" role="presentation">
+        <form method="post" action="options.php">
+            <?php settings_fields('esistenza_category_styler'); ?>
+            <table class="form-table" role="presentation">
                     <tr>
                         <th scope="row"><?php _e('Eklentiyi Etkinleştir', 'esistenze-wp-kit'); ?></th>
                         <td>
@@ -494,69 +505,12 @@ class EsistenzeCategoryStyler {
                 </table>
                 <?php submit_button(); ?>
             </form>
-        </div>
         <?php
-    }
-    
-    private function get_default_settings() {
-        return array(
-            'enabled' => true,
-            'grid_columns' => 'auto',
-            'card_min_width' => 250,
-            'grid_gap' => 20,
-            'hide_price_hover' => true,
-            'enable_animations' => true,
-            'show_product_count' => false,
-            'lazy_load_images' => false,
-            'card_bg_color' => '#ffffff',
-            'card_bg_gradient' => '#f8f8f8',
-            'card_border_width' => 1,
-            'card_border_color' => '#e0e0e0',
-            'card_border_radius' => 15,
-            'shadow_x' => 0,
-            'shadow_y' => 8,
-            'shadow_blur' => 20,
-            'shadow_opacity' => 0.1,
-            'title_font_size' => 20,
-            'title_font_weight' => '600',
-            'title_color' => '#2c3e50',
-            'desc_font_size' => 14,
-            'desc_color' => '#7f8c8d',
-            'hover_scale' => true,
-            'hover_lift' => true,
-            'hover_shadow_intensity' => 0.2,
-            'sidebar_header_bg_start' => '#4CAF50',
-            'sidebar_header_bg_end' => '#45a049',
-            'sidebar_header_color' => '#ffffff',
-            'sidebar_header_font_size' => 18,
-            'sidebar_item_bg' => '#ffffff',
-            'sidebar_item_hover_bg' => '#f9f9f9',
-            'sidebar_item_color' => '#2c3e50',
-            'sidebar_item_hover_color' => '#4CAF50',
-            'sidebar_active_bg' => '#e6f3e6',
-            'sidebar_active_border' => '#4CAF50',
-            'sidebar_active_border_width' => 5,
-            'header_bg_start' => '#4CAF50',
-            'header_bg_middle' => '#45a049',
-            'header_bg_end' => '#2E7D32',
-            'header_height' => 350,
-            'header_title_size' => 48,
-            'header_title_color' => '#ffffff',
-            'header_title_bg_opacity' => 0.6,
-            'minify_css' => false,
-            'inline_critical_css' => false,
-            'defer_non_critical_css' => false,
-            'webp_support' => false,
-            'image_size' => 'medium',
-            'enable_caching' => true,
-            'cache_duration' => 43200,
-            'debug_mode' => false,
-            'disable_theme_styles' => false,
-            'force_styles' => false,
-            'legacy_support' => false
-        );
+        $this->renderAdminFooter();
     }
 }
 
-// Initialize the module
-EsistenzeCategoryStyler::getInstance();
+// Initialize the module  
+if (class_exists('EsistenzeBaseModule')) {
+    EsistenzeCategoryStyler::getInstance();
+}

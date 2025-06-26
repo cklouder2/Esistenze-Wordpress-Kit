@@ -8,96 +8,136 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class EsistenzeCustomTopbar {
+class EsistenzeCustomTopbar extends EsistenzeBaseModule {
     
-    private static $instance = null;
-    
-    public static function getInstance() {
-        if (self::$instance === null) {
-            self::$instance = new self();
-        }
-        return self::$instance;
+    /**
+     * Get module name
+     * @return string
+     */
+    protected function getModuleName(): string {
+        return 'custom-topbar';
     }
     
-    private function __construct() {
-        add_action('init', array($this, 'init'));
-        // Load textdomain for translations
-        add_action('plugins_loaded', array($this, 'load_textdomain'));
+    /**
+     * Get settings option name
+     * @return string
+     */
+    protected function getSettingsOptionName(): string {
+        return 'esistenze_topbar_settings';
     }
     
-    public function load_textdomain() {
-        load_plugin_textdomain('esistenze-wp-kit', false, dirname(plugin_basename(__FILE__)) . '/languages');
+    /**
+     * Get default settings
+     * @return array
+     */
+    protected function getDefaultSettings(): array {
+        return [
+            'enabled' => true,
+            'position' => 'fixed-top',
+            'height' => 50,
+            'z_index' => 99999,
+            'show_on_home' => true,
+            'show_on_pages' => true,
+            'show_on_posts' => true,
+            'show_on_shop' => true,
+            'show_on_archive' => true,
+            'bg_color_start' => '#4CAF50',
+            'bg_color_end' => '#388E3C',
+            'text_color' => '#ffffff',
+            'font_family' => 'system',
+            'font_size' => 16
+        ];
     }
     
-    public function init() {
-        // Admin init
-        add_action('admin_init', array($this, 'register_settings'));
+    /**
+     * Initialize module
+     * @return void
+     */
+    public function init(): void {
+        // Admin hooks
+        $this->addAction('admin_init', [$this, 'registerSettings']);
+        $this->addAction('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
         
         // AJAX handlers
-        add_action('wp_ajax_esistenze_topbar_preview', array($this, 'ajax_topbar_preview'));
-        add_action('wp_ajax_esistenze_topbar_reset', array($this, 'ajax_reset_topbar'));
-        add_action('wp_ajax_esistenze_topbar_import', array($this, 'ajax_import_settings'));
-        add_action('wp_ajax_esistenze_topbar_click_track', array($this, 'ajax_track_click'));
+        $this->addAction('wp_ajax_esistenze_topbar_preview', [$this, 'ajaxTopbarPreview']);
+        $this->addAction('wp_ajax_esistenze_topbar_reset', [$this, 'ajaxResetTopbar']);
+        $this->addAction('wp_ajax_esistenze_topbar_import', [$this, 'ajaxImportSettings']);
+        $this->addAction('wp_ajax_esistenze_topbar_click_track', [$this, 'ajaxTrackClick']);
         
         // Frontend hooks
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_styles'));
+        $this->addAction('wp_enqueue_scripts', [$this, 'enqueueStyles']);
         
         // Output topbar
         if (has_action('wp_body_open')) {
-            add_action('wp_body_open', array($this, 'output_topbar'));
+            $this->addAction('wp_body_open', [$this, 'outputTopbar']);
         } else {
-            add_action('wp_head', array($this, 'output_topbar'), 1);
+            $this->addAction('wp_head', [$this, 'outputTopbar'], 1);
         }
         
         // Add tracking script to footer
-        add_action('wp_footer', array($this, 'add_tracking_script'));
+        $this->addAction('wp_footer', [$this, 'addTrackingScript']);
     }
     
-    public static function admin_page() {
+    /**
+     * Register admin menus
+     * @return void
+     */
+    public function registerAdminMenus(): void {
+        $this->registerAdminSubmenu(
+            'Custom Topbar',
+            'Custom Topbar',
+            'esistenze-custom-topbar',
+            [$this, 'adminPage']
+        );
+    }
+    
+    public function adminPage() {
+        if (!$this->canAccessAdmin()) {
+            $this->denyAccess();
+        }
+        
         $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'general';
         
         // Handle form submissions
         if (isset($_POST['submit'])) {
-            self::handle_form_submission();
+            $this->handleFormSubmission();
         }
         
-        echo '<div class="wrap esistenze-topbar-wrap">';
-        echo '<h1 class="wp-heading-inline">Custom Topbar</h1>';
+        $this->renderAdminHeader('Custom Topbar');
         echo '<button type="button" class="page-title-action" onclick="previewTopbar()">Canlı Önizleme</button>';
-        echo '<hr class="wp-header-end">';
         
         // Show admin notices
-        self::show_admin_notices();
+        $this->showAdminNotices();
         
         // Tabs
-        self::render_tabs($current_tab);
+        $this->renderTabs($current_tab);
         
         // Tab content
         switch ($current_tab) {
             case 'general':
-                self::render_general_tab();
+                $this->renderGeneralTab();
                 break;
             case 'design':
-                self::render_design_tab();
+                $this->renderDesignTab();
                 break;
             case 'content':
-                self::render_content_tab();
+                $this->renderContentTab();
                 break;
             case 'advanced':
-                self::render_advanced_tab();
+                $this->renderAdvancedTab();
                 break;
             case 'analytics':
-                self::render_analytics_tab();
+                $this->renderAnalyticsTab();
                 break;
         }
         
-        echo '</div>';
+        $this->renderAdminFooter();
         
         // Add JavaScript and CSS
-        self::enqueue_admin_assets();
+        $this->enqueueAdminAssets();
     }
     
-    private static function render_tabs($current_tab) {
+    private function renderTabs($current_tab) {
         $tabs = array(
             'general' => array('label' => 'Genel Ayarlar', 'icon' => 'dashicons-admin-settings'),
             'design' => array('label' => 'Tasarım', 'icon' => 'dashicons-admin-appearance'),
@@ -116,8 +156,8 @@ class EsistenzeCustomTopbar {
         echo '</nav>';
     }
     
-    private static function render_general_tab() {
-        $settings = get_option('esistenze_topbar_settings', self::get_default_settings());
+    private function renderGeneralTab() {
+        $settings = $this->getSettings($this->settingsOptionName, $this->getDefaultSettings());
         ?>
         <div class="topbar-content">
             <form method="post" action="">
@@ -1309,9 +1349,9 @@ class EsistenzeCustomTopbar {
         <?php
     }
     
-    private static function handle_form_submission() {
-        if (!current_user_can(esistenze_qmc_capability()) || !check_admin_referer('esistenze_topbar_save')) {
-            wp_die('Yetkiniz yok.');
+    private function handleFormSubmission() {
+        if (!$this->canAccessAdmin() || !$this->verifyNonce('esistenze_topbar_save')) {
+            $this->denyAccess();
         }
         
         $tab = sanitize_text_field($_POST['tab'] ?? 'general');
@@ -1393,7 +1433,7 @@ class EsistenzeCustomTopbar {
         return $sanitized;
     }
     
-    private static function show_admin_notices() {
+    private function showAdminNotices() {
         // Check for Font Awesome
         if (!wp_style_is('font-awesome', 'enqueued') && !wp_style_is('fontawesome', 'enqueued')) {
             echo '<div class="notice notice-info"><p><strong>Bilgi:</strong> Font Awesome ikonları görünmüyorsa, temanızın Font Awesome yüklediğinden emin olun.</p></div>';
@@ -1486,11 +1526,11 @@ class EsistenzeCustomTopbar {
     
     // FRONTEND METHODS
     
-    public function register_settings() {
+    public function registerSettings() {
         register_setting('esistenze_topbar', 'esistenze_topbar_settings');
     }
     
-    public function enqueue_styles() {
+    public function enqueueStyles() {
         $settings = get_option('esistenze_topbar_settings', self::get_default_settings());
         
         if (empty($settings['enabled'])) {
@@ -1512,7 +1552,7 @@ class EsistenzeCustomTopbar {
         }
     }
 
-    public function output_topbar() {
+    public function outputTopbar() {
         $settings = get_option('esistenze_topbar_settings', self::get_default_settings());
         
         if (empty($settings['enabled'])) {
@@ -1527,7 +1567,7 @@ class EsistenzeCustomTopbar {
         $this->render_topbar($settings);
     }
     
-    public function add_tracking_script() {
+    public function addTrackingScript() {
         $settings = get_option('esistenze_topbar_settings', self::get_default_settings());
         
         if (empty($settings['enabled'])) {
@@ -1904,9 +1944,9 @@ class EsistenzeCustomTopbar {
     }
     
     // AJAX handlers
-    public function ajax_topbar_preview() {
+    public function ajaxTopbarPreview() {
         check_ajax_referer('esistenze_topbar_preview');
-        if (!current_user_can(esistenze_qmc_capability())) {
+        if (!$this->canAccessAdmin()) {
             wp_send_json_error('Insufficient permissions');
         }
 
@@ -1955,9 +1995,9 @@ class EsistenzeCustomTopbar {
         wp_send_json_success($html);
     }
     
-    public function ajax_reset_topbar() {
+    public function ajaxResetTopbar() {
         check_ajax_referer('esistenze_topbar_reset');
-        if (!current_user_can(esistenze_qmc_capability())) {
+        if (!$this->canAccessAdmin()) {
             wp_send_json_error(__('Insufficient permissions', 'esistenze-wp-kit'));
         }
         
@@ -1969,9 +2009,9 @@ class EsistenzeCustomTopbar {
         wp_send_json_success('Statistics reset successfully');
     }
     
-    public function ajax_import_settings() {
+    public function ajaxImportSettings() {
         check_ajax_referer('esistenze_topbar_import');
-        if (!current_user_can(esistenze_qmc_capability())) {
+        if (!$this->canAccessAdmin()) {
             wp_send_json_error(__('Insufficient permissions', 'esistenze-wp-kit'));
         }
 
@@ -1994,7 +2034,7 @@ class EsistenzeCustomTopbar {
         wp_send_json_success('Settings imported');
     }
     
-    public function ajax_track_click() {
+    public function ajaxTrackClick() {
         check_ajax_referer('esistenze_topbar_click_track');
         
         $element = sanitize_text_field($_POST['element'] ?? '');
@@ -2932,5 +2972,7 @@ class EsistenzeCustomTopbar {
 }
 
 // Initialize the module
-EsistenzeCustomTopbar::getInstance();
+if (class_exists('EsistenzeBaseModule')) {
+    EsistenzeCustomTopbar::getInstance();
+}
 ?>
