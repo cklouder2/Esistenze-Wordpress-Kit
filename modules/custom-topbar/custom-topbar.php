@@ -21,6 +21,12 @@ class EsistenzeCustomTopbar {
     
     private function __construct() {
         add_action('init', array($this, 'init'));
+        // Load textdomain for translations
+        add_action('plugins_loaded', array($this, 'load_textdomain'));
+    }
+    
+    public function load_textdomain() {
+        load_plugin_textdomain('esistenze-wp-kit', false, dirname(plugin_basename(__FILE__)) . '/languages');
     }
     
     public function init() {
@@ -218,10 +224,10 @@ class EsistenzeCustomTopbar {
                                         <th scope="row">Mobil Davranış</th>
                                         <td>
                                             <select name="settings[mobile_behavior]" onchange="updatePreview()">
-                                                <option value="responsive" <?php selected($settings['mobile_behavior'] ?? '', 'responsive'); ?>>Responsive (Alt alta)</option>
-                                                <option value="horizontal" <?php selected($settings['mobile_behavior'] ?? '', 'horizontal'); ?>>Yatay Scroll</option>
-                                                <option value="hide" <?php selected($settings['mobile_behavior'] ?? '', 'hide'); ?>>Mobilde Gizle</option>
-                                                <option value="collapse" <?php selected($settings['mobile_behavior'] ?? '', 'collapse'); ?>>Hamburger Menü</option>
+                                                <option value="responsive" <?php selected($settings['mobile_behavior'] ?? '', 'responsive'); ?><?php _e('Responsive (Alt alta)', 'esistenze-wp-kit'); ?></option>
+                                                <option value="horizontal" <?php selected($settings['mobile_behavior'] ?? '', 'horizontal'); ?><?php _e('Yatay Scroll', 'esistenze-wp-kit'); ?></option>
+                                                <option value="hide" <?php selected($settings['mobile_behavior'] ?? '', 'hide'); ?><?php _e('Mobilde Gizle', 'esistenze-wp-kit'); ?></option>
+                                                <option value="collapse" <?php selected($settings['mobile_behavior'] ?? '', 'collapse'); ?><?php _e('Hamburger Menü', 'esistenze-wp-kit'); ?></option>
                                             </select>
                                         </td>
                                     </tr>
@@ -1953,7 +1959,7 @@ class EsistenzeCustomTopbar {
         check_ajax_referer('esistenze_topbar_reset');
         
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('Insufficient permissions');
+            wp_send_json_error(__('Insufficient permissions', 'esistenze-wp-kit'));
         }
         
         // Reset statistics
@@ -1967,7 +1973,7 @@ class EsistenzeCustomTopbar {
     public function ajax_import_settings() {
         check_ajax_referer('esistenze_topbar_import');
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('Insufficient permissions');
+            wp_send_json_error(__('Insufficient permissions', 'esistenze-wp-kit'));
         }
 
         if (empty($_FILES['file']['tmp_name'])) {
@@ -1990,7 +1996,7 @@ class EsistenzeCustomTopbar {
     }
     
     public function ajax_track_click() {
-        check_ajax_referer('esistenze_topbar_track');
+        check_ajax_referer('esistenze_topbar_click_track');
         
         $element = sanitize_text_field($_POST['element'] ?? '');
         if (empty($element)) {

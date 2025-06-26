@@ -22,6 +22,12 @@ class EsistenzeCategoryStyler {
     private function __construct() {
         // Use init hook for all initialization to avoid "load textdomain too early" error
         add_action('init', array($this, 'init'));
+        // Load textdomain for translations
+        add_action('plugins_loaded', array($this, 'load_textdomain'));
+    }
+    
+    public function load_textdomain() {
+        load_plugin_textdomain('esistenze-wp-kit', false, dirname(plugin_basename(__FILE__)) . '/languages');
     }
     
     public function init() {
@@ -196,7 +202,7 @@ class EsistenzeCategoryStyler {
         if ($settings['grid_columns'] === 'auto') {
             $css .= '.esistenza-category-styler-grid { grid-template-columns: repeat(auto-fit, minmax(' . intval($settings['card_min_width']) . 'px, 1fr)); }';
         } else {
-            $css .= '.esistenze-category-styler-grid { grid-template-columns: repeat(' . intval($settings['grid_columns']) . ', 1fr); }';
+            $css .= '.esistanza-category-styler-grid { grid-template-columns: repeat(' . intval($settings['grid_columns']) . ', 1fr); }';
         }
         
         $css .= '.esistanza-category-styler-grid { gap: ' . intval($settings['grid_gap']) . 'px; }';
@@ -341,21 +347,21 @@ class EsistenzeCategoryStyler {
         check_ajax_referer('esistenza_reset_stats');
         
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('Insufficient permissions');
+            wp_send_json_error(__('Insufficient permissions', 'esistenze-wp-kit'));
         }
         
         delete_option('esistanza_category_styler_usage');
         wp_cache_flush();
         
-        wp_send_json_success('Statistics reset successfully');
+        wp_send_json_success(__('Statistics reset successfully', 'esistenze-wp-kit'));
     }
     
     private function generate_preview_html($settings) {
         // Generate a sample category preview based on settings
         $sample_categories = array(
-            array('name' => 'Örnek Kategori 1', 'description' => 'Bu bir örnek açıklamadır.'),
-            array('name' => 'Örnek Kategori 2', 'description' => 'İkinci örnek açıklama.'),
-            array('name' => 'Örnek Kategori 3', 'description' => 'Üçüncü örnek açıklama.')
+            array('name' => __('Örnek Kategori 1', 'esistenze-wp-kit'), 'description' => __('Bu bir örnek açıklamadır.', 'esistenze-wp-kit')),
+            array('name' => __('Örnek Kategori 2', 'esistenze-wp-kit'), 'description' => __('İkinci örnek açıklama.', 'esistenze-wp-kit')),
+            array('name' => __('Örnek Kategori 3', 'esistenze-wp-kit'), 'description' => __('Üçüncü örnek açıklama.', 'esistenze-wp-kit'))
         );
         
         ob_start();
@@ -396,48 +402,48 @@ class EsistenzeCategoryStyler {
 
         ?>
         <div class="wrap">
-            <h1>Category Styler Ayarları</h1>
+            <h1><?php _e('Category Styler Ayarları', 'esistenze-wp-kit'); ?></h1>
             <form method="post" action="options.php">
                 <?php settings_fields('esistenza_category_styler'); ?>
                 <table class="form-table" role="presentation">
                     <tr>
-                        <th scope="row">Eklentiyi Etkinleştir</th>
+                        <th scope="row"><?php _e('Eklentiyi Etkinleştir', 'esistenze-wp-kit'); ?></th>
                         <td>
                             <input type="checkbox" name="esistenze_category_styler_settings[enabled]" value="1" <?php checked($settings['enabled']); ?> />
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row"><label for="grid_columns">Grid Sütunları</label></th>
+                        <th scope="row"><label for="grid_columns"><?php _e('Grid Sütunları', 'esistenze-wp-kit'); ?></label></th>
                         <td>
                             <input type="number" class="small-text" id="grid_columns" name="esistenze_category_styler_settings[grid_columns]" value="<?php echo esc_attr($settings['grid_columns']); ?>" />
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row"><label for="card_min_width">Kart Min. Genişliği</label></th>
+                        <th scope="row"><label for="card_min_width"><?php _e('Kart Min. Genişliği', 'esistenze-wp-kit'); ?></label></th>
                         <td>
                             <input type="number" class="small-text" id="card_min_width" name="esistenze_category_styler_settings[card_min_width]" value="<?php echo esc_attr($settings['card_min_width']); ?>" /> px
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row"><label for="grid_gap">Grid Boşluğu</label></th>
+                        <th scope="row"><label for="grid_gap"><?php _e('Grid Boşluğu', 'esistenze-wp-kit'); ?></label></th>
                         <td>
                             <input type="number" class="small-text" id="grid_gap" name="esistenze_category_styler_settings[grid_gap]" value="<?php echo esc_attr($settings['grid_gap']); ?>" /> px
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row">Ürün Sayısını Göster</th>
+                        <th scope="row"><?php _e('Ürün Sayısını Göster', 'esistenze-wp-kit'); ?></th>
                         <td>
                             <input type="checkbox" name="esistenze_category_styler_settings[show_product_count]" value="1" <?php checked($settings['show_product_count']); ?> />
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row">Animasyonları Etkinleştir</th>
+                        <th scope="row"><?php _e('Animasyonları Etkinleştir', 'esistenze-wp-kit'); ?></th>
                         <td>
                             <input type="checkbox" name="esistenze_category_styler_settings[enable_animations]" value="1" <?php checked($settings['enable_animations']); ?> />
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row"><label for="custom_css">Özel CSS</label></th>
+                        <th scope="row"><label for="custom_css"><?php _e('Özel CSS', 'esistenze-wp-kit'); ?></label></th>
                         <td>
                             <textarea id="custom_css" name="esistenze_custom_category_css" rows="5" class="large-text"><?php echo esc_textarea($custom_css); ?></textarea>
                         </td>

@@ -45,8 +45,15 @@ class EsistenzeWPKit {
         register_activation_hook(__FILE__, array($this, 'activate'));
         register_deactivation_hook(__FILE__, array($this, 'deactivate'));
         
+        // Load textdomain for translations
+        add_action('plugins_loaded', array($this, 'load_textdomain'));
+        
         // Core functionality
         add_action('plugins_loaded', array($this, 'init'));
+    }
+    
+    public function load_textdomain() {
+        load_plugin_textdomain('esistenze-wp-kit', false, dirname(plugin_basename(__FILE__)) . '/languages');
     }
     
     public function init() {
@@ -203,75 +210,75 @@ class EsistenzeWPKit {
     public function admin_dashboard() {
         ?>
         <div class="wrap esistenze-dashboard">
-            <h1>Esistenze WordPress Kit Dashboard</h1>
+            <h1><?php _e('Esistenze WordPress Kit Dashboard', 'esistenze-wp-kit'); ?></h1>
             
             <div class="esistenze-welcome-panel">
-                <h2>Hoş Geldiniz!</h2>
-                <p>Esistenze WordPress Kit, web sitenizi güçlendirmek için tasarlanmış 5 farklı modülü içerir.</p>
-                <p>Version: <?php echo ESISTENZE_WP_KIT_VERSION; ?></p>
+                <h2><?php _e('Hoş Geldiniz!', 'esistenze-wp-kit'); ?></h2>
+                <p><?php _e('Esistenze WordPress Kit, web sitenizi güçlendirmek için tasarlanmış 5 farklı modülü içerir.', 'esistenze-wp-kit'); ?></p>
+                <p><?php _e('Version:', 'esistenze-wp-kit'); ?> <?php echo ESISTENZE_WP_KIT_VERSION; ?></p>
             </div>
             
             <div class="esistenze-modules-grid">
                 <div class="module-card">
-                    <h3><span class="dashicons dashicons-button"></span> Smart Product Buttons</h3>
-                    <p>WooCommerce ürün sayfalarında özelleştirilebilir, animasyonlu butonlar ekler.</p>
-                    <a href="<?php echo admin_url('admin.php?page=esistenze-smart-buttons'); ?>" class="button button-primary">Ayarlar</a>
+                    <h3><span class="dashicons dashicons-button"></span> <?php _e('Smart Product Buttons', 'esistenze-wp-kit'); ?></h3>
+                    <p><?php _e('WooCommerce ürün sayfalarında özelleştirilebilir, animasyonlu butonlar ekler.', 'esistenze-wp-kit'); ?></p>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-smart-buttons'); ?>" class="button button-primary"><?php _e('Ayarlar', 'esistenze-wp-kit'); ?></a>
                     <div class="module-status <?php echo (isset($this->loaded_modules['smart-product-buttons']) && $this->loaded_modules['smart-product-buttons'] === true) ? 'active' : 'inactive'; ?>">
-                        <?php echo (isset($this->loaded_modules['smart-product-buttons']) && $this->loaded_modules['smart-product-buttons'] === true) ? 'Aktif' : 'Devre Dışı'; ?>
+                        <?php echo (isset($this->loaded_modules['smart-product-buttons']) && $this->loaded_modules['smart-product-buttons'] === true) ? __('Aktif', 'esistenze-wp-kit') : __('Devre Dışı', 'esistenze-wp-kit'); ?>
                     </div>
                 </div>
                 
                 <div class="module-card">
-                    <h3><span class="dashicons dashicons-category"></span> Category Styler</h3>
-                    <p>WooCommerce kategorilerini modern ve lüks bir görünümle stilize eder.</p>
-                    <a href="<?php echo admin_url('admin.php?page=esistenze-category-styler'); ?>" class="button button-primary">Ayarlar</a>
+                    <h3><span class="dashicons dashicons-category"></span> <?php _e('Category Styler', 'esistenze-wp-kit'); ?></h3>
+                    <p><?php _e('WooCommerce kategorilerini modern ve lüks bir görünümle stilize eder.', 'esistenze-wp-kit'); ?></p>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-category-styler'); ?>" class="button button-primary"><?php _e('Ayarlar', 'esistenze-wp-kit'); ?></a>
                     <div class="module-status <?php echo (isset($this->loaded_modules['category-styler']) && $this->loaded_modules['category-styler'] === true) ? 'active' : 'inactive'; ?>">
-                        <?php echo (isset($this->loaded_modules['category-styler']) && $this->loaded_modules['category-styler'] === true) ? 'Aktif' : 'Devre Dışı'; ?>
+                        <?php echo (isset($this->loaded_modules['category-styler']) && $this->loaded_modules['category-styler'] === true) ? __('Aktif', 'esistenze-wp-kit') : __('Devre Dışı', 'esistenze-wp-kit'); ?>
                     </div>
                 </div>
                 
                 <div class="module-card">
-                    <h3><span class="dashicons dashicons-admin-customizer"></span> Custom Topbar</h3>
-                    <p>Site üstüne özelleştirilebilir menü ve iletişim bilgileri çubuğu ekler.</p>
-                    <a href="<?php echo admin_url('admin.php?page=esistenze-custom-topbar'); ?>" class="button button-primary">Ayarlar</a>
+                    <h3><span class="dashicons dashicons-admin-customizer"></span> <?php _e('Custom Topbar', 'esistenze-wp-kit'); ?></h3>
+                    <p><?php _e('Site üstüne özelleştirilebilir menü ve iletişim bilgileri çubuğu ekler.', 'esistenze-wp-kit'); ?></p>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-custom-topbar'); ?>" class="button button-primary"><?php _e('Ayarlar', 'esistenze-wp-kit'); ?></a>
                     <div class="module-status <?php echo (isset($this->loaded_modules['custom-topbar']) && $this->loaded_modules['custom-topbar'] === true) ? 'active' : 'inactive'; ?>">
-                        <?php echo (isset($this->loaded_modules['custom-topbar']) && $this->loaded_modules['custom-topbar'] === true) ? 'Aktif' : 'Devre Dışı'; ?>
+                        <?php echo (isset($this->loaded_modules['custom-topbar']) && $this->loaded_modules['custom-topbar'] === true) ? __('Aktif', 'esistenze-wp-kit') : __('Devre Dışı', 'esistenze-wp-kit'); ?>
                     </div>
                 </div>
                 
                 <div class="module-card">
-                    <h3><span class="dashicons dashicons-grid-view"></span> Quick Menu Cards</h3>
-                    <p>Görsel, başlık ve bağlantı içeren modern menü kartları oluşturur.</p>
-                    <a href="<?php echo admin_url('admin.php?page=esistenze-quick-menu'); ?>" class="button button-primary">Ayarlar</a>
+                    <h3><span class="dashicons dashicons-grid-view"></span> <?php _e('Quick Menu Cards', 'esistenze-wp-kit'); ?></h3>
+                    <p><?php _e('Görsel, başlık ve bağlantı içeren modern menü kartları oluşturur.', 'esistenze-wp-kit'); ?></p>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-quick-menu'); ?>" class="button button-primary"><?php _e('Ayarlar', 'esistenze-wp-kit'); ?></a>
                     <div class="module-status <?php echo (isset($this->loaded_modules['quick-menu-cards']) && $this->loaded_modules['quick-menu-cards'] === true) ? 'active' : 'inactive'; ?>">
-                        <?php echo (isset($this->loaded_modules['quick-menu-cards']) && $this->loaded_modules['quick-menu-cards'] === true) ? 'Aktif' : 'Devre Dışı'; ?>
+                        <?php echo (isset($this->loaded_modules['quick-menu-cards']) && $this->loaded_modules['quick-menu-cards'] === true) ? __('Aktif', 'esistenze-wp-kit') : __('Devre Dışı', 'esistenze-wp-kit'); ?>
                     </div>
                 </div>
                 
                 <div class="module-card">
-                    <h3><span class="dashicons dashicons-tag"></span> Price Modifier</h3>
-                    <p>WooCommerce ürün fiyatlarına özel notlar ve stiller ekler.</p>
-                    <a href="<?php echo admin_url('admin.php?page=esistenze-price-modifier'); ?>" class="button button-primary">Ayarlar</a>
+                    <h3><span class="dashicons dashicons-tag"></span> <?php _e('Price Modifier', 'esistenze-wp-kit'); ?></h3>
+                    <p><?php _e('WooCommerce ürün fiyatlarına özel notlar ve stiller ekler.', 'esistenze-wp-kit'); ?></p>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-price-modifier'); ?>" class="button button-primary"><?php _e('Ayarlar', 'esistenze-wp-kit'); ?></a>
                     <div class="module-status <?php echo (isset($this->loaded_modules['price-modifier']) && $this->loaded_modules['price-modifier'] === true) ? 'active' : 'inactive'; ?>">
-                        <?php echo (isset($this->loaded_modules['price-modifier']) && $this->loaded_modules['price-modifier'] === true) ? 'Aktif' : 'Devre Dışı'; ?>
+                        <?php echo (isset($this->loaded_modules['price-modifier']) && $this->loaded_modules['price-modifier'] === true) ? __('Aktif', 'esistenze-wp-kit') : __('Devre Dışı', 'esistenze-wp-kit'); ?>
                     </div>
                 </div>
             </div>
             
             <div class="esistenze-info-panel">
-                <h3>Kısa Kodlar ve Kullanım</h3>
+                <h3><?php _e('Kısa Kodlar ve Kullanım', 'esistenze-wp-kit'); ?></h3>
                 <div class="shortcode-list">
-                    <code>[display_categories]</code> - Stilize edilmiş kategorileri gösterir<br>
-                    <code>[hizli_menu id="0"]</code> - Hızlı menü kartlarını ızgara görünümde gösterir<br>
-                    <code>[hizli_menu_banner id="0"]</code> - Hızlı menü kartlarını banner görünümde gösterir
+                    <code>[display_categories]</code> - <?php _e('Stilize edilmiş kategorileri gösterir', 'esistenze-wp-kit'); ?><br>
+                    <code>[hizli_menu id="0"]</code> - <?php _e('Hızlı menü kartlarını ızgara görünümde gösterir', 'esistenze-wp-kit'); ?><br>
+                    <code>[hizli_menu_banner id="0"]</code> - <?php _e('Hızlı menü kartlarını banner görünümde gösterir', 'esistenze-wp-kit'); ?>
                 </div>
             </div>
 
             <div class="esistenze-tools-panel">
-                <h3>Yardımcı Araçlar</h3>
+                <h3><?php _e('Yardımcı Araçlar', 'esistenze-wp-kit'); ?></h3>
                 <div class="tools-buttons">
-                    <a href="<?php echo admin_url('admin.php?page=esistenze-wp-kit&action=reset_cache'); ?>" class="button">Önbelleği Temizle</a>
-                    <a href="<?php echo admin_url('admin.php?page=esistenze-wp-kit&action=system_check'); ?>" class="button">Sistem Kontrolü</a>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-wp-kit&action=reset_cache'); ?>" class="button"><?php _e('Önbelleği Temizle', 'esistenze-wp-kit'); ?></a>
+                    <a href="<?php echo admin_url('admin.php?page=esistenze-wp-kit&action=system_check'); ?>" class="button"><?php _e('Sistem Kontrolü', 'esistenze-wp-kit'); ?></a>
                 </div>
             </div>
         </div>
@@ -453,4 +460,11 @@ class EsistenzeWPKit {
 
 // Initialize the plugin
 EsistenzeWPKit::getInstance();
+
+// YETKİ FONKSİYONU: Quick Menu Cards ve diğer modüller için global capability
+if (!function_exists('esistenze_qmc_capability')) {
+    function esistenze_qmc_capability() {
+        return 'manage_options'; // Sadece adminler erişebilir
+    }
+}
 }
