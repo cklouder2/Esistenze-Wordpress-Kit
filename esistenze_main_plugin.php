@@ -2,7 +2,7 @@
 /*
 Plugin Name: Esistenze WordPress Kit
 Description: Kapsamlı WordPress eklenti paketi - Smart Product Buttons, Category Styler, Custom Topbar ve Price Modifier modüllerini içerir.
-Version: 2.1.0
+Version: 2.0.0
 Author: Cem Karabulut - Esistenze
 Text Domain: esistenze-wp-kit
 Domain Path: /languages
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 
 // Plugin constants. Make sure they are defined only once to avoid warnings
 if (!defined('ESISTENZE_WP_KIT_VERSION')) {
-    define('ESISTENZE_WP_KIT_VERSION', '2.1.0');
+    define('ESISTENZE_WP_KIT_VERSION', '2.0.0');
 }
 if (!defined('ESISTENZE_WP_KIT_PATH')) {
     define('ESISTENZE_WP_KIT_PATH', plugin_dir_path(__FILE__));
@@ -82,11 +82,7 @@ class EsistenzeWPKit {
             require_once $migration_file;
         }
         
-        // Load base module class and traits
-        $base_module_file = ESISTENZE_WP_KIT_PATH . 'includes/class-base-module.php';
-        if (file_exists($base_module_file)) {
-            require_once $base_module_file;
-        }
+
     }
     
     private function safe_load_modules() {
@@ -188,7 +184,7 @@ class EsistenzeWPKit {
     }
     
     public function admin_menu() {
-        // Admin paneli için güvenli yetki seviyesi - modüllerle uyumlu olması için manage_options kullanıyoruz
+        // Admin paneli için güvenli yetki seviyesi
         $cap = function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'manage_options';
         
         // Main menu page
@@ -201,7 +197,6 @@ class EsistenzeWPKit {
             'dashicons-admin-tools',
             30
         );
-        
         // Dashboard submenu
         add_submenu_page(
             'esistenze-wp-kit',
@@ -212,8 +207,39 @@ class EsistenzeWPKit {
             array($this, 'admin_dashboard')
         );
         
-        // Module submenus are now registered by modules themselves in their init() methods
-        // This provides better encapsulation and allows for more flexible menu management
+        // Module submenus - only if module classes exist
+        // Smart Buttons adds its own menu in its class
+        if (class_exists('EsistenzeCategoryStyler') && method_exists('EsistenzeCategoryStyler', 'admin_page')) {
+            add_submenu_page(
+                'esistenze-wp-kit',
+                'Category Styler',
+                'Category Styler',
+                $cap,
+                'esistenze-category-styler',
+                array('EsistenzeCategoryStyler', 'admin_page')
+            );
+        }
+        if (class_exists('EsistenzeCustomTopbar') && method_exists('EsistenzeCustomTopbar', 'admin_page')) {
+            add_submenu_page(
+                'esistenze-wp-kit',
+                'Custom Topbar',
+                'Custom Topbar',
+                $cap,
+                'esistenze-custom-topbar',
+                array('EsistenzeCustomTopbar', 'admin_page')
+            );
+        }
+        // Price Modifier
+        if (class_exists('EsistenzePriceModifier') && method_exists('EsistenzePriceModifier', 'admin_page')) {
+            add_submenu_page(
+                'esistenze-wp-kit',
+                'Price Modifier',
+                'Price Modifier',
+                $cap,
+                'esistenze-price-modifier',
+                array('EsistenzePriceModifier', 'admin_page')
+            );
+        }
     }
     
     public function admin_dashboard() {
