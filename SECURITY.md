@@ -6,8 +6,9 @@ We actively support the following versions of Esistenze WordPress Kit with secur
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 2.0.x   | :white_check_mark: |
 | 1.2.x   | :white_check_mark: |
-| 1.1.x   | :white_check_mark: |
+| 1.1.x   | :x:                |
 | < 1.1   | :x:                |
 
 ## Reporting a Vulnerability

@@ -4,6 +4,8 @@
 [![PHP Version](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://php.net/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)]()
+[![Version](https://img.shields.io/badge/Version-2.0.0-success.svg)]()
+[![Release](https://img.shields.io/badge/Release-Major-red.svg)]()
 
 A comprehensive WordPress plugin suite providing essential modules for WooCommerce-based websites. Each module offers powerful functionality while maintaining simplicity and performance.
 

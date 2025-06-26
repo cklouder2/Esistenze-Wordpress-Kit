@@ -2,7 +2,7 @@
 # Copyright (C) 2024 Esistenze WordPress Kit
 msgid ""
 msgstr ""
-"Project-Id-Version: Esistenze WordPress Kit 1.2.0\n"
+"Project-Id-Version: Esistenze WordPress Kit 2.0.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/esistenze-wp-kit\n"
 "POT-Creation-Date: 2024-01-01 00:00:00+00:00\n"
 "PO-Revision-Date: 2024-01-01 00:00:00+00:00\n"

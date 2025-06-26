@@ -2,10 +2,16 @@
 /*
 Plugin Name: Esistenze WordPress Kit
 Description: Kapsamlı WordPress eklenti paketi - Smart Product Buttons, Category Styler, Custom Topbar, Hızlı Menü Kartları ve Price Modifier modüllerini içerir.
-Version: 1.1.0
+Version: 2.0.0
 Author: Cem Karabulut - Esistenze
 Text Domain: esistenze-wp-kit
 Domain Path: /languages
+Requires at least: 5.8
+Tested up to: 6.4
+Requires PHP: 7.4
+Network: false
+License: MIT
+License URI: https://opensource.org/licenses/MIT
 */
 
 if (!defined('ABSPATH')) {
@@ -14,7 +20,7 @@ if (!defined('ABSPATH')) {
 
 // Plugin constants. Make sure they are defined only once to avoid warnings
 if (!defined('ESISTENZE_WP_KIT_VERSION')) {
-    define('ESISTENZE_WP_KIT_VERSION', '1.2.0');
+    define('ESISTENZE_WP_KIT_VERSION', '2.0.0');
 }
 if (!defined('ESISTENZE_WP_KIT_PATH')) {
     define('ESISTENZE_WP_KIT_PATH', plugin_dir_path(__FILE__));
@@ -57,6 +63,9 @@ class EsistenzeWPKit {
     }
     
     public function init() {
+        // Load migration handler
+        $this->load_migration_handler();
+        
         // Load modules in a safe way
         $this->safe_load_modules();
         
@@ -65,6 +74,13 @@ class EsistenzeWPKit {
         
         // Enqueue admin assets
         add_action('admin_enqueue_scripts', array($this, 'admin_assets'));
+    }
+    
+    private function load_migration_handler() {
+        $migration_file = ESISTENZE_WP_KIT_PATH . 'includes/class-migration.php';
+        if (file_exists($migration_file)) {
+            require_once $migration_file;
+        }
     }
     
     private function safe_load_modules() {

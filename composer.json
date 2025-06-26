@@ -2,7 +2,7 @@
     "name": "esistenze/wordpress-kit",
     "description": "Comprehensive WordPress plugin suite with Smart Product Buttons, Category Styler, Custom Topbar, Quick Menu Cards, and Price Modifier modules",
     "type": "wordpress-plugin",
-    "version": "1.2.0",
+    "version": "2.0.0",
     "keywords": [
         "wordpress",
         "plugin",
