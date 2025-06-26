@@ -60,8 +60,8 @@ class EsistenzeQuickMenuCardsAdmin {
      * @return void
      */
     public function admin_menu(): void {
-        // Daha basit yetki kontrolü - edit_posts yeterli
-        $cap = 'edit_posts';
+        // Geçici - en düşük yetki seviyesi
+        $cap = 'read';
         
         // Ana eklenti menüsünün altına submenu olarak ekle
         $this->page_hooks['main'] = add_submenu_page(
@@ -197,10 +197,19 @@ class EsistenzeQuickMenuCardsAdmin {
      * @return void
      */
     public function admin_page(): void {
-        // Basit yetki kontrolü - edit_posts yeterli
-        if (!current_user_can('edit_posts')) {
-            wp_die(__('Bu sayfaya erişim için yazı düzenleme yetkiniz olmalı.', 'esistenze-wp-kit'));
-        }
+        // Geçici debug - yetki kontrolü kaldırıldı
+        $current_user = wp_get_current_user();
+        echo '<div class="notice notice-info">';
+        echo '<h3>Quick Menu Cards Debug Bilgisi:</h3>';
+        echo '<p><strong>Kullanıcı:</strong> ' . esc_html($current_user->user_login) . '</p>';
+        echo '<p><strong>Roller:</strong> ' . esc_html(implode(', ', $current_user->roles)) . '</p>';
+        echo '<p><strong>ID:</strong> ' . $current_user->ID . '</p>';
+        echo '<p><strong>read yetkisi:</strong> ' . (current_user_can('read') ? 'VAR' : 'YOK') . '</p>';
+        echo '<p><strong>edit_posts yetkisi:</strong> ' . (current_user_can('edit_posts') ? 'VAR' : 'YOK') . '</p>';
+        echo '<p><strong>manage_options yetkisi:</strong> ' . (current_user_can('manage_options') ? 'VAR' : 'YOK') . '</p>';
+        echo '</div>';
+        
+        // Yetki kontrolü geçici olarak kaldırıldı
         
         $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'groups';
         $current_action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : '';

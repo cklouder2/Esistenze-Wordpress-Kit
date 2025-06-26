@@ -145,7 +145,8 @@ class EsistenzeWPKit {
     }
     
     public function admin_menu() {
-        $cap = function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'manage_options';
+        // Geçici - en düşük yetki seviyesi
+        $cap = 'read';
         // Main menu page
         add_menu_page(
             'Esistenze WP Kit',
