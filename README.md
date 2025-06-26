@@ -9,3 +9,5 @@ This repository contains a modular WordPress plugin package with multiple compon
 - Price Modifier
 
 Each module lives in the `modules/` directory and can be enabled independently. See `esistenze_main_plugin.php` for the loader and general plugin structure.
+
+This project is licensed under the [MIT License](LICENSE).
