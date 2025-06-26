@@ -24,7 +24,7 @@ add_action('wp_ajax_esistenze_clear_debug_log', 'esistenze_handle_clear_debug_lo
 add_action('wp_ajax_esistenze_download_system_info', 'esistenze_handle_download_system_info');
 
 function esistenze_handle_export_data() {
-    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can('manage_options')) {
+    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can(esistenze_qmc_capability())) {
         wp_send_json_error('Yetkisiz erişim.');
     }
     
@@ -73,7 +73,7 @@ function esistenze_handle_export_data() {
 }
 
 function esistenze_handle_import_data() {
-    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can('manage_options')) {
+    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can(esistenze_qmc_capability())) {
         wp_send_json_error('Yetkisiz erişim.');
     }
     
@@ -200,7 +200,7 @@ function esistenze_handle_import_data() {
 }
 
 function esistenze_handle_clear_cache() {
-    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can('manage_options')) {
+    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can(esistenze_qmc_capability())) {
         wp_send_json_error('Yetkisiz erişim.');
     }
     
@@ -287,7 +287,7 @@ function esistenze_preload_cache() {
 }
 
 function esistenze_handle_db_action() {
-    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can('manage_options')) {
+    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can(esistenze_qmc_capability())) {
         wp_send_json_error('Yetkisiz erişim.');
     }
     
@@ -371,7 +371,7 @@ function esistenze_cleanup_old_data() {
 }
 
 function esistenze_handle_check_error_log() {
-    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can('manage_options')) {
+    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can(esistenze_qmc_capability())) {
         wp_send_json_error('Yetkisiz erişim.');
     }
     
@@ -426,7 +426,7 @@ function esistenze_handle_check_error_log() {
 }
 
 function esistenze_handle_test_conflicts() {
-    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can('manage_options')) {
+    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can(esistenze_qmc_capability())) {
         wp_send_json_error('Yetkisiz erişim.');
     }
     
@@ -490,7 +490,7 @@ function esistenze_handle_test_conflicts() {
 }
 
 function esistenze_handle_performance_test() {
-    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can('manage_options')) {
+    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can(esistenze_qmc_capability())) {
         wp_send_json_error('Yetkisiz erişim.');
     }
     
@@ -545,7 +545,7 @@ function esistenze_handle_performance_test() {
 }
 
 function esistenze_handle_maintenance_mode() {
-    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can('manage_options')) {
+    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can(esistenze_qmc_capability())) {
         wp_send_json_error('Yetkisiz erişim.');
     }
     
@@ -576,7 +576,7 @@ function esistenze_handle_maintenance_mode() {
 }
 
 function esistenze_handle_get_debug_log() {
-    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can('manage_options')) {
+    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can(esistenze_qmc_capability())) {
         wp_send_json_error('Yetkisiz erişim.');
     }
     
@@ -624,7 +624,7 @@ function esistenze_handle_get_debug_log() {
 }
 
 function esistenze_handle_clear_debug_log() {
-    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can('manage_options')) {
+    if (!wp_verify_nonce($_POST['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can(esistenze_qmc_capability())) {
         wp_send_json_error('Yetkisiz erişim.');
     }
     
@@ -646,7 +646,7 @@ function esistenze_handle_clear_debug_log() {
 }
 
 function esistenze_handle_download_system_info() {
-    if (!wp_verify_nonce($_GET['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can('manage_options')) {
+    if (!wp_verify_nonce($_GET['nonce'], 'esistenze_quick_menu_nonce') || !current_user_can(esistenze_qmc_capability())) {
         wp_die('Yetkisiz erişim.');
     }
     
@@ -743,7 +743,7 @@ add_action('template_redirect', 'esistenze_check_maintenance_mode');
 
 function esistenze_check_maintenance_mode() {
     // Admin kullanıcıları bakım modundan muaf
-    if (current_user_can('manage_options')) {
+    if (current_user_can(esistenze_qmc_capability())) {
         return;
     }
     
