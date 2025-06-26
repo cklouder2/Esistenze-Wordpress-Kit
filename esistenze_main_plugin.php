@@ -166,16 +166,7 @@ class EsistenzeWPKit {
             array($this, 'admin_dashboard')
         );
         // Module submenus - only if module classes exist
-        if (class_exists('EsistenzeSmartButtons') && method_exists('EsistenzeSmartButtons', 'admin_page')) {
-            add_submenu_page(
-                'esistenze-wp-kit',
-                'Smart Buttons',
-                'Smart Buttons',
-                $cap,
-                'esistenze-smart-buttons',
-                array('EsistenzeSmartButtons', 'admin_page')
-            );
-        }
+        // Smart Buttons adds its own menu in its class
         if (class_exists('EsistenzeCategoryStyler') && method_exists('EsistenzeCategoryStyler', 'admin_page')) {
             add_submenu_page(
                 'esistenze-wp-kit',
@@ -196,15 +187,8 @@ class EsistenzeWPKit {
                 array('EsistenzeCustomTopbar', 'admin_page')
             );
         }
-        if (class_exists('EsistenzeQuickMenuCards') && method_exists('EsistenzeQuickMenuCards', 'admin_page')) {
-            add_submenu_page(
-                'esistenze-wp-kit',
-                'Quick Menu Cards',
-                'Quick Menu Cards',
-                $cap,
-                'esistenze-quick-menu',
-                array('EsistenzeQuickMenuCards', 'admin_page')
-            );
+        if (class_exists('EsistenzeQuickMenuCards')) {
+            // Quick Menu Cards artık submenu olarak ekleniyor
         }
         if (class_exists('EsistenzePriceModifier') && method_exists('EsistenzePriceModifier', 'admin_page')) {
             add_submenu_page(
@@ -472,17 +456,25 @@ class EsistenzeWPKit {
 // Initialize the plugin
 EsistenzeWPKit::getInstance();
 
+}
+
 // YETKİ FONKSİYONU: Quick Menu Cards ve diğer modüller için global capability
 if (!function_exists('esistenze_qmc_capability')) {
     function esistenze_qmc_capability() {
-        // Admin ise 'manage_options', editör ise 'edit_pages' yetkisi ver
+        // Mevcut kullanıcının en uygun yetkisini belirle
         if (current_user_can('manage_options')) {
             return 'manage_options';
         } elseif (current_user_can('edit_pages')) {
             return 'edit_pages';
+        } elseif (current_user_can('edit_posts')) {
+            return 'edit_posts';
+        } elseif (current_user_can('edit_others_posts')) {
+            return 'edit_others_posts';
+        } elseif (current_user_can('publish_posts')) {
+            return 'publish_posts';
         } else {
-            return 'manage_options'; // Varsayılan olarak admin yetkisi
+            // En düşük yetki seviyesi - yazı yazabilenler
+            return 'edit_posts';
         }
     }
-}
 }
