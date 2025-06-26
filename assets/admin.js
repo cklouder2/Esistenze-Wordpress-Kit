@@ -13,11 +13,25 @@ jQuery(document).ready(function($) {
     );
     
     // Smart Buttons functionality
+    function updateRowIndices() {
+        $('.sortable-button-list tr').each(function(index) {
+            $(this).attr('data-index', index);
+            $(this).find('input, select').each(function () {
+                var name = $(this).attr('name');
+                if (name) {
+                    var newName = name.replace(/\[\d+\]/, '[' + index + ']');
+                    $(this).attr('name', newName);
+                }
+            });
+        });
+    }
+
     if ($('.sortable-button-list').length) {
         $('.sortable-button-list').sortable({
             update: function(event, ui) {
                 var order = $(this).sortable('toArray', { attribute: 'data-index' });
                 console.log('New order:', order);
+                updateRowIndices();
             }
         });
     }
@@ -42,6 +56,7 @@ jQuery(document).ready(function($) {
         });
 
         $('.sortable-button-list').append(newRow);
+        updateRowIndices();
     });
 
     // Duplicate button functionality
@@ -57,7 +72,17 @@ jQuery(document).ready(function($) {
             }
         });
 
+
         $('.sortable-button-list').append(clone);
+        updateRowIndices();
+    });
+
+    // Delete button functionality
+    $(document).on('click', '.delete-btn', function () {
+        if (confirm('Bu satırı silmek istediğinize emin misiniz?')) {
+            $(this).closest('tr').remove();
+            updateRowIndices();
+        }
     });
 
     // Preview button functionality
