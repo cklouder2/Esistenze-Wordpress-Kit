@@ -174,7 +174,7 @@ class EsistenzeWPKit {
                 'esistenze-wp-kit',
                 'Quick Menu Cards',
                 'Quick Menu Cards',
-                'manage_options',
+                esistenze_qmc_capability(),
                 'esistenze-quick-menu',
                 array('EsistenzeQuickMenuCards', 'admin_page')
             );
