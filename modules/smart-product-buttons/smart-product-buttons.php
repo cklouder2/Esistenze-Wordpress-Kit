@@ -10,18 +10,29 @@ class EsistenzeSmartButtons {
     
     private static $instance = null;
     
-    public static function getInstance() {
+    /**
+     * Get singleton instance
+     * @return self
+     */
+    public static function getInstance(): self {
         if (self::$instance === null) {
             self::$instance = new self();
         }
         return self::$instance;
     }
     
+    /**
+     * Constructor
+     */
     private function __construct() {
         add_action('init', array($this, 'init'));
     }
     
-    public function init() {
+    /**
+     * Init hooks and actions
+     * @return void
+     */
+    public function init(): void {
         // Admin hooks
         add_action('admin_post_esistenze_smart_button_save', array($this, 'save_button'));
         add_action('admin_post_esistenze_smart_button_delete', array($this, 'delete_button'));
@@ -46,12 +57,19 @@ class EsistenzeSmartButtons {
         add_action('admin_init', array($this, 'register_settings'));
     }
     
-    public function register_settings() {
+    /**
+     * Register plugin settings
+     * @return void
+     */
+    public function register_settings(): void {
         register_setting('esistenze_smart_buttons_settings', 'esistenze_smart_buttons_settings');
     }
     
-    // AJAX Handlers
-    public function ajax_preview() {
+    /**
+     * AJAX: Preview button
+     * @return void
+     */
+    public function ajax_preview(): void {
         check_ajax_referer('esistenze_smart_button_preview');
         
         $button_data = array(
@@ -67,7 +85,11 @@ class EsistenzeSmartButtons {
         wp_send_json_success(self::render_button_preview($button_data));
     }
     
-    public function ajax_reorder() {
+    /**
+     * AJAX: Reorder buttons
+     * @return void
+     */
+    public function ajax_reorder(): void {
         check_ajax_referer('esistenze_smart_button_reorder');
         
         if (!current_user_can('manage_options') || empty($_POST['order'])) {
@@ -89,7 +111,11 @@ class EsistenzeSmartButtons {
         wp_send_json_success('Butonlar yeniden sıralandı.');
     }
     
-    public function track_button_click() {
+    /**
+     * AJAX: Track button click
+     * @return void
+     */
+    public function track_button_click(): void {
         check_ajax_referer('esistenze_button_tracking', 'nonce');
         
         $button_id = isset($_POST['button_id']) ? intval($_POST['button_id']) : 0;
@@ -99,8 +125,11 @@ class EsistenzeSmartButtons {
         wp_send_json_success();
     }
     
-    // Form Submission Handlers
-    public function save_button() {
+    /**
+     * Save button (admin)
+     * @return void
+     */
+    public function save_button(): void {
         if (!current_user_can('manage_options') || !check_admin_referer('esistenze_smart_button_save')) {
             wp_die('Yetkiniz yok.');
         }
@@ -135,8 +164,12 @@ class EsistenzeSmartButtons {
         exit;
     }
 
-    public function delete_button() {
-        if (!current_user_can('manage_options') || !isset($_GET['id']) || !check_admin_referer('esistenze_smart_button_delete_' . $_GET['id'])) {
+    /**
+     * Delete button (admin)
+     * @return void
+     */
+    public function delete_button(): void {
+        if (!current_user_can(esistenze_qmc_capability()) || !isset($_GET['id']) || !check_admin_referer('esistenze_smart_button_delete_' . $_GET['id'])) {
             wp_die('Yetkiniz yok.');
         }
         
@@ -153,8 +186,12 @@ class EsistenzeSmartButtons {
         exit;
     }
     
-    public function duplicate_button() {
-        if (!current_user_can('manage_options') || !isset($_GET['id']) || !check_admin_referer('esistenze_smart_button_duplicate')) {
+    /**
+     * Duplicate button (admin)
+     * @return void
+     */
+    public function duplicate_button(): void {
+        if (!current_user_can(esistenze_qmc_capability()) || !isset($_GET['id']) || !check_admin_referer('esistenze_smart_button_duplicate')) {
             wp_die('Yetkiniz yok.');
         }
         
@@ -174,8 +211,12 @@ class EsistenzeSmartButtons {
         exit;
     }
     
-    public function bulk_actions() {
-        if (!current_user_can('manage_options') || !check_admin_referer('esistenze_smart_buttons_bulk')) {
+    /**
+     * Bulk actions (admin)
+     * @return void
+     */
+    public function bulk_actions(): void {
+        if (!current_user_can(esistenze_qmc_capability()) || !check_admin_referer('esistenze_smart_buttons_bulk')) {
             wp_die('Yetkiniz yok.');
         }
         
@@ -234,7 +275,11 @@ class EsistenzeSmartButtons {
         exit;
     }
     
-    public function import_settings() {
+    /**
+     * Import settings (admin)
+     * @return void
+     */
+    public function import_settings(): void {
         if (!current_user_can('manage_options') || !check_admin_referer('esistenze_smart_buttons_import')) {
             wp_die('Yetkiniz yok.');
         }
@@ -270,8 +315,12 @@ class EsistenzeSmartButtons {
         exit;
     }
     
-    public function export_settings() {
-        if (!current_user_can('manage_options') || !check_admin_referer('esistenze_smart_buttons_export')) {
+    /**
+     * Export settings (admin)
+     * @return void
+     */
+    public function export_settings(): void {
+        if (!current_user_can(esistenze_qmc_capability()) || !check_admin_referer('esistenze_smart_buttons_export')) {
             wp_die('Yetkiniz yok.');
         }
         
@@ -293,8 +342,11 @@ class EsistenzeSmartButtons {
         exit;
     }
     
-    // Frontend Methods
-    public function render_buttons_on_product_page() {
+    /**
+     * Render buttons on product page
+     * @return void
+     */
+    public function render_buttons_on_product_page(): void {
         $settings = get_option('esistenze_smart_buttons_settings', []);
         
         if (empty($settings['show_on_products'])) {
@@ -336,7 +388,12 @@ class EsistenzeSmartButtons {
         echo '</div>';
     }
     
-    public function button_shortcode($atts) {
+    /**
+     * Button shortcode
+     * @param array $atts
+     * @return string
+     */
+    public function button_shortcode(array $atts): string {
         $atts = shortcode_atts(['id' => ''], $atts);
         
         if (empty($atts['id'])) {
@@ -359,7 +416,11 @@ class EsistenzeSmartButtons {
         return $this->render_single_button($buttons[$button_id], $button_id);
     }
     
-    public function enqueue_public_assets() {
+    /**
+     * Enqueue public assets
+     * @return void
+     */
+    public function enqueue_public_assets(): void {
         $settings = get_option('esistenze_smart_buttons_settings', []);
         
         if (empty($settings)) {
@@ -380,7 +441,11 @@ class EsistenzeSmartButtons {
         }
     }
     
-    public function render_modal_container() {
+    /**
+     * Render modal container
+     * @return void
+     */
+    public function render_modal_container(): void {
         // This adds a container for form popups
         if (!is_product()) {
             return;

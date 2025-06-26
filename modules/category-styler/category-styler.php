@@ -8,17 +8,28 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * Category Styler Module
+ * Part of Esistenze WordPress Kit
+ */
 class EsistenzeCategoryStyler {
     
     private static $instance = null;
     
-    public static function getInstance() {
+    /**
+     * Get singleton instance
+     * @return self
+     */
+    public static function getInstance(): self {
         if (self::$instance === null) {
             self::$instance = new self();
         }
         return self::$instance;
     }
     
+    /**
+     * Constructor
+     */
     private function __construct() {
         // Use init hook for all initialization to avoid "load textdomain too early" error
         add_action('init', array($this, 'init'));
@@ -26,11 +37,19 @@ class EsistenzeCategoryStyler {
         add_action('plugins_loaded', array($this, 'load_textdomain'));
     }
     
-    public function load_textdomain() {
+    /**
+     * Load plugin textdomain for translations
+     * @return void
+     */
+    public function load_textdomain(): void {
         load_plugin_textdomain('esistenze-wp-kit', false, dirname(plugin_basename(__FILE__)) . '/languages');
     }
     
-    public function init() {
+    /**
+     * Init hooks and shortcodes
+     * @return void
+     */
+    public function init(): void {
         // Register shortcode
         add_shortcode('esistenze_display_categories', array($this, 'display_styled_categories'));
         
@@ -43,12 +62,21 @@ class EsistenzeCategoryStyler {
         add_action('wp_ajax_esistenze_reset_category_stats', array($this, 'ajax_reset_stats'));
     }
     
-    public function register_settings() {
+    /**
+     * Register plugin settings
+     * @return void
+     */
+    public function register_settings(): void {
         register_setting('esistenza_category_styler', 'esistenze_category_styler_settings');
         register_setting('esistenza_category_styler', 'esistenze_custom_category_css');
     }
     
-    public function display_styled_categories($atts) {
+    /**
+     * Display styled categories via shortcode
+     * @param array $atts
+     * @return string
+     */
+    public function display_styled_categories(array $atts): string {
         $atts = shortcode_atts(array(
             'limit' => '',
             'orderby' => 'name',
@@ -155,7 +183,11 @@ class EsistenzeCategoryStyler {
         return ob_get_clean();
     }
     
-    public function enqueue_styles() {
+    /**
+     * Enqueue frontend styles and dynamic CSS
+     * @return void
+     */
+    public function enqueue_styles(): void {
         $settings = get_option('esistenze_category_styler_settings', $this->get_default_settings());
         
         if (empty($settings['enabled'])) {
@@ -331,8 +363,11 @@ class EsistenzeCategoryStyler {
         update_option('esistenza_category_styler_usage', $usage_data);
     }
     
-    // AJAX handlers
-    public function ajax_category_preview() {
+    /**
+     * AJAX: Category preview
+     * @return void
+     */
+    public function ajax_category_preview(): void {
         check_ajax_referer('esistanza_category_preview');
         
         $settings = $_POST['settings'] ?? array();
@@ -343,16 +378,17 @@ class EsistenzeCategoryStyler {
         wp_send_json_success($preview_html);
     }
     
-    public function ajax_reset_stats() {
+    /**
+     * AJAX: Reset category stats
+     * @return void
+     */
+    public function ajax_reset_stats(): void {
         check_ajax_referer('esistenza_reset_stats');
-        
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(esistenze_qmc_capability())) {
             wp_send_json_error(__('Insufficient permissions', 'esistenze-wp-kit'));
         }
-        
         delete_option('esistanza_category_styler_usage');
         wp_cache_flush();
-        
         wp_send_json_success(__('Statistics reset successfully', 'esistenze-wp-kit'));
     }
     
@@ -395,7 +431,14 @@ class EsistenzeCategoryStyler {
         return ob_get_clean();
     }
     
-    public static function admin_page() {
+    /**
+     * Render admin page
+     * @return void
+     */
+    public static function admin_page(): void {
+        if (!current_user_can(esistenze_qmc_capability())) {
+            wp_die(__('Bu sayfaya erişim yetkiniz bulunmuyor.', 'esistenze-wp-kit'));
+        }
         $defaults  = self::getInstance()->get_default_settings();
         $settings  = get_option('esistenze_category_styler_settings', $defaults);
         $custom_css = get_option('esistenze_custom_category_css', '');

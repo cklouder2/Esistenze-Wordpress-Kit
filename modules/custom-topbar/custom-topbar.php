@@ -1310,7 +1310,7 @@ class EsistenzeCustomTopbar {
     }
     
     private static function handle_form_submission() {
-        if (!current_user_can('manage_options') || !check_admin_referer('esistenze_topbar_save')) {
+        if (!current_user_can(esistenze_qmc_capability()) || !check_admin_referer('esistenze_topbar_save')) {
             wp_die('Yetkiniz yok.');
         }
         
@@ -1906,7 +1906,7 @@ class EsistenzeCustomTopbar {
     // AJAX handlers
     public function ajax_topbar_preview() {
         check_ajax_referer('esistenze_topbar_preview');
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(esistenze_qmc_capability())) {
             wp_send_json_error('Insufficient permissions');
         }
 
@@ -1957,8 +1957,7 @@ class EsistenzeCustomTopbar {
     
     public function ajax_reset_topbar() {
         check_ajax_referer('esistenze_topbar_reset');
-        
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(esistenze_qmc_capability())) {
             wp_send_json_error(__('Insufficient permissions', 'esistenze-wp-kit'));
         }
         
@@ -1972,7 +1971,7 @@ class EsistenzeCustomTopbar {
     
     public function ajax_import_settings() {
         check_ajax_referer('esistenze_topbar_import');
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(esistenze_qmc_capability())) {
             wp_send_json_error(__('Insufficient permissions', 'esistenze-wp-kit'));
         }
 

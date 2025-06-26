@@ -2,7 +2,7 @@
 /*
 Plugin Name: Esistenze WordPress Kit
 Description: Kapsamlı WordPress eklenti paketi - Smart Product Buttons, Category Styler, Custom Topbar, Hızlı Menü Kartları ve Price Modifier modüllerini içerir.
-Version: 1.0.1
+Version: 1.1.0
 Author: Cem Karabulut - Esistenze
 Text Domain: esistenze-wp-kit
 Domain Path: /languages
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
 
 // Plugin constants. Make sure they are defined only once to avoid warnings
 if (!defined('ESISTENZE_WP_KIT_VERSION')) {
-    define('ESISTENZE_WP_KIT_VERSION', '1.0.1');
+    define('ESISTENZE_WP_KIT_VERSION', '1.1.0');
 }
 if (!defined('ESISTENZE_WP_KIT_PATH')) {
     define('ESISTENZE_WP_KIT_PATH', plugin_dir_path(__FILE__));
@@ -133,7 +133,7 @@ class EsistenzeWPKit {
         add_menu_page(
             'Esistenze WP Kit',
             'Esistenze Kit',
-            'manage_options',
+            esistenze_qmc_capability(),
             'esistenze-wp-kit',
             array($this, 'admin_dashboard'),
             'dashicons-admin-tools',
@@ -145,7 +145,7 @@ class EsistenzeWPKit {
             'esistenze-wp-kit',
             'Dashboard',
             'Dashboard',
-            'manage_options',
+            esistenze_qmc_capability(),
             'esistenze-wp-kit',
             array($this, 'admin_dashboard')
         );
@@ -156,7 +156,7 @@ class EsistenzeWPKit {
                 'esistenze-wp-kit',
                 'Smart Buttons',
                 'Smart Buttons',
-                'manage_options',
+                esistenze_qmc_capability(),
                 'esistenze-smart-buttons',
                 array('EsistenzeSmartButtons', 'admin_page')
             );
@@ -167,7 +167,7 @@ class EsistenzeWPKit {
                 'esistenze-wp-kit',
                 'Category Styler',
                 'Category Styler',
-                'manage_options',
+                esistenze_qmc_capability(),
                 'esistenze-category-styler',
                 array('EsistenzeCategoryStyler', 'admin_page')
             );
@@ -178,7 +178,7 @@ class EsistenzeWPKit {
                 'esistenze-wp-kit',
                 'Custom Topbar',
                 'Custom Topbar',
-                'manage_options',
+                esistenze_qmc_capability(),
                 'esistenze-custom-topbar',
                 array('EsistenzeCustomTopbar', 'admin_page')
             );
@@ -200,7 +200,7 @@ class EsistenzeWPKit {
                 'esistenze-wp-kit',
                 'Price Modifier',
                 'Price Modifier',
-                'manage_options',
+                esistenze_qmc_capability(),
                 'esistenze-price-modifier',
                 array('EsistenzePriceModifier', 'admin_page')
             );

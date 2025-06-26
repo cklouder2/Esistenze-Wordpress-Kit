@@ -8,22 +8,37 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * Price Modifier Module
+ * Part of Esistenze WordPress Kit
+ */
 class EsistenzePriceModifier {
     
     private static $instance = null;
     
-    public static function getInstance() {
+    /**
+     * Get singleton instance
+     * @return self
+     */
+    public static function getInstance(): self {
         if (self::$instance === null) {
             self::$instance = new self();
         }
         return self::$instance;
     }
     
+    /**
+     * Constructor
+     */
     private function __construct() {
         add_action('init', array($this, 'init'));
     }
     
-    public function init() {
+    /**
+     * Init hooks and actions
+     * @return void
+     */
+    public function init(): void {
         // Admin hooks
         add_action('admin_init', array($this, 'register_settings'));
         
@@ -35,7 +50,14 @@ class EsistenzePriceModifier {
         add_action('woocommerce_single_product_summary', array($this, 'custom_price_with_note'), 10);
     }
     
-    public static function admin_page() {
+    /**
+     * Render admin page
+     * @return void
+     */
+    public static function admin_page(): void {
+        if (!current_user_can(esistenze_qmc_capability())) {
+            wp_die(__('Bu sayfaya erişim yetkiniz bulunmuyor.', 'esistenze-wp-kit'));
+        }
         if (isset($_POST['submit'])) {
             update_option('esistenze_price_modifier_enabled', isset($_POST['enable_price_modifier']));
             update_option('esistenze_price_note', sanitize_textarea_field($_POST['price_note']));
@@ -108,7 +130,11 @@ class EsistenzePriceModifier {
         <?php
     }
     
-    public function register_settings() {
+    /**
+     * Register plugin settings
+     * @return void
+     */
+    public function register_settings(): void {
         register_setting('esistenze_price_modifier', 'esistenze_price_modifier_enabled');
         register_setting('esistenze_price_modifier', 'esistenze_price_note');
         register_setting('esistenze_price_modifier', 'esistenze_price_note_color');
@@ -116,7 +142,11 @@ class EsistenzePriceModifier {
         register_setting('esistenze_price_modifier', 'esistenze_price_border_color');
     }
     
-    public function enqueue_styles() {
+    /**
+     * Enqueue frontend styles and dynamic CSS
+     * @return void
+     */
+    public function enqueue_styles(): void {
         if (!get_option('esistenze_price_modifier_enabled', true)) {
             return;
         }
@@ -182,7 +212,11 @@ class EsistenzePriceModifier {
         wp_add_inline_style('woocommerce-inline', $custom_css);
     }
 
-    public function custom_price_with_note() {
+    /**
+     * Output custom price with note
+     * @return void
+     */
+    public function custom_price_with_note(): void {
         if (!get_option('esistenze_price_modifier_enabled', true)) {
             woocommerce_template_single_price();
             return;

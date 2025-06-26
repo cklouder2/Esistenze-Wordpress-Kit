@@ -51,7 +51,7 @@ $defaults = EsistenzeQuickMenuCards::get_default_settings();
                 <table class="form-table">
                     <tr>
                         <th scope="row">
-                            <label for="default_button_text">Varsayılan Buton Metni</label>
+                            <label for="default_button_text"><?php echo esc_html('Varsayılan Buton Metni'); ?></label>
                         </th>
                         <td>
                             <input type="text" 
@@ -60,13 +60,13 @@ $defaults = EsistenzeQuickMenuCards::get_default_settings();
                                    value="<?php echo esc_attr($settings['default_button_text'] ?? $defaults['default_button_text']); ?>" 
                                    class="regular-text" 
                                    placeholder="<?php echo esc_attr($defaults['default_button_text']); ?>">
-                            <p class="description">Kart görünümünde kullanılacak varsayılan buton metni.</p>
+                            <p class="description"><?php echo esc_html('Kart görünümünde kullanılacak varsayılan buton metni.'); ?></p>
                         </td>
                     </tr>
                     
                     <tr>
                         <th scope="row">
-                            <label for="banner_button_text">Banner Buton Metni</label>
+                            <label for="banner_button_text"><?php echo esc_html('Banner Buton Metni'); ?></label>
                         </th>
                         <td>
                             <input type="text" 
@@ -75,7 +75,7 @@ $defaults = EsistenzeQuickMenuCards::get_default_settings();
                                    value="<?php echo esc_attr($settings['banner_button_text'] ?? $defaults['banner_button_text']); ?>" 
                                    class="regular-text" 
                                    placeholder="<?php echo esc_attr($defaults['banner_button_text']); ?>">
-                            <p class="description">Banner görünümünde kullanılacak varsayılan buton metni.</p>
+                            <p class="description"><?php echo esc_html('Banner görünümünde kullanılacak varsayılan buton metni.'); ?></p>
                         </td>
                     </tr>
                 </table>
@@ -88,7 +88,7 @@ $defaults = EsistenzeQuickMenuCards::get_default_settings();
                 <table class="form-table">
                     <tr>
                         <th scope="row">
-                            <label for="mobile_columns">Mobil Sütun Sayısı</label>
+                            <label for="mobile_columns"><?php echo esc_html('Mobil Sütun Sayısı'); ?></label>
                         </th>
                         <td>
                             <select id="mobile_columns" name="settings[mobile_columns]">
@@ -96,13 +96,13 @@ $defaults = EsistenzeQuickMenuCards::get_default_settings();
                                 <option value="2" <?php selected($settings['mobile_columns'] ?? $defaults['mobile_columns'], 2); ?>>2 Sütun</option>
                                 <option value="3" <?php selected($settings['mobile_columns'] ?? $defaults['mobile_columns'], 3); ?>>3 Sütun</option>
                             </select>
-                            <p class="description">Mobil cihazlarda kaç sütun gösterileceğini belirler.</p>
+                            <p class="description"><?php echo esc_html('Mobil cihazlarda kaç sütun gösterileceğini belirler.'); ?></p>
                         </td>
                     </tr>
                     
                     <tr>
                         <th scope="row">
-                            <label for="enable_dark_mode">Dark Mode Desteği</label>
+                            <label for="enable_dark_mode"><?php echo esc_html('Dark Mode Desteği'); ?></label>
                         </th>
                         <td>
                             <fieldset>
@@ -114,14 +114,14 @@ $defaults = EsistenzeQuickMenuCards::get_default_settings();
                                            <?php checked(!empty($settings['enable_dark_mode'])); ?>>
                                     Otomatik dark mode desteğini etkinleştir
                                 </label>
-                                <p class="description">Kullanıcının sistem tercihine göre otomatik dark mode.</p>
+                                <p class="description"><?php echo esc_html('Kullanıcının sistem tercihine göre otomatik dark mode.'); ?></p>
                             </fieldset>
                         </td>
                     </tr>
                     
                     <tr>
                         <th scope="row">
-                            <label for="custom_css">Özel CSS</label>
+                            <label for="custom_css"><?php echo esc_html('Özel CSS'); ?></label>
                         </th>
                         <td>
                             <textarea id="custom_css" 
@@ -130,7 +130,7 @@ $defaults = EsistenzeQuickMenuCards::get_default_settings();
                                       class="large-text code"
                                       placeholder="/* Özel CSS kodlarınızı buraya yazın */"><?php echo esc_textarea($settings['custom_css'] ?? ''); ?></textarea>
                             <p class="description">
-                                Kartlarınızın görünümünü özelleştirmek için CSS kodu ekleyebilirsiniz.<br>
+                                <?php echo esc_html('Kartlarınızın görünümünü özelleştirmek için CSS kodu ekleyebilirsiniz.'); ?><br>
                                 <strong>CSS Sınıfları:</strong> .esistenze-quick-menu-wrapper, .esistenze-quick-menu-kart, .esistenze-quick-menu-banner
                             </p>
                         </td>
@@ -145,7 +145,7 @@ $defaults = EsistenzeQuickMenuCards::get_default_settings();
                 <table class="form-table">
                     <tr>
                         <th scope="row">
-                            <label for="enable_lazy_loading">Lazy Loading</label>
+                            <label for="enable_lazy_loading"><?php echo esc_html('Lazy Loading'); ?></label>
                         </th>
                         <td>
                             <fieldset>
@@ -157,14 +157,14 @@ $defaults = EsistenzeQuickMenuCards::get_default_settings();
                                            <?php checked(!empty($settings['enable_lazy_loading'])); ?>>
                                     Görseller için lazy loading'i etkinleştir
                                 </label>
-                                <p class="description">Sayfa yükleme hızını artırır. Önerilir.</p>
+                                <p class="description"><?php echo esc_html('Sayfa yükleme hızını artırır. Önerilir.'); ?></p>
                             </fieldset>
                         </td>
                     </tr>
                     
                     <tr>
                         <th scope="row">
-                            <label for="cache_duration">Cache Süresi</label>
+                            <label for="cache_duration"><?php echo esc_html('Cache Süresi'); ?></label>
                         </th>
                         <td>
                             <select id="cache_duration" name="settings[cache_duration]">
@@ -175,13 +175,13 @@ $defaults = EsistenzeQuickMenuCards::get_default_settings();
                                 <option value="21600" <?php selected($settings['cache_duration'] ?? $defaults['cache_duration'], 21600); ?>>6 Saat</option>
                                 <option value="86400" <?php selected($settings['cache_duration'] ?? $defaults['cache_duration'], 86400); ?>>24 Saat</option>
                             </select>
-                            <p class="description">Kartların ne kadar süreyle cache'de tutulacağını belirler.</p>
+                            <p class="description"><?php echo esc_html('Kartların ne kadar süreyle cache\'de tutulacağını belirler.'); ?></p>
                         </td>
                     </tr>
                     
                     <tr>
                         <th scope="row">
-                            <label for="enable_gpu_acceleration">GPU Acceleration</label>
+                            <label for="enable_gpu_acceleration"><?php echo esc_html('GPU Acceleration'); ?></label>
                         </th>
                         <td>
                             <fieldset>
@@ -193,7 +193,7 @@ $defaults = EsistenzeQuickMenuCards::get_default_settings();
                                            <?php checked(!empty($settings['enable_gpu_acceleration'])); ?>>
                                     CSS animasyonları için GPU acceleration kullan
                                 </label>
-                                <p class="description">Daha smooth animasyonlar için GPU'yu kullanır.</p>
+                                <p class="description"><?php echo esc_html('Daha smooth animasyonlar için GPU\'yu kullanır.'); ?></p>
                             </fieldset>
                         </td>
                     </tr>

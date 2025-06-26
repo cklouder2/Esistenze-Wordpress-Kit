@@ -17,28 +17,28 @@ if (!defined('ABSPATH')) {
         <div class="header-left">
             <h2>
                 <?php if ($group_id === 0 && empty($group_data)): ?>
-                    <span class="dashicons dashicons-plus-alt"></span> Yeni Grup Oluştur
+                    <span class="dashicons dashicons-plus-alt"></span> <?php echo esc_html('Yeni Grup Oluştur'); ?>
                 <?php else: ?>
-                    <span class="dashicons dashicons-edit"></span> Grup #<?php echo $group_id; ?> Düzenle
+                    <span class="dashicons dashicons-edit"></span> <?php echo esc_html('Grup #' . $group_id . ' Düzenle'); ?>
                 <?php endif; ?>
             </h2>
             <div class="group-meta">
                 <?php if (!empty($group_data)): ?>
                     <span class="meta-item">
                         <span class="dashicons dashicons-grid-view"></span>
-                        <?php echo count($group_data); ?> kart
+                        <?php echo esc_html(count($group_data)); ?> kart
                     </span>
                     <?php $stats = $this->get_group_stats($group_id); ?>
                     <span class="meta-item">
                         <span class="dashicons dashicons-visibility"></span>
-                        <?php echo number_format($stats['views']); ?> görüntülenme
+                        <?php echo esc_html(number_format($stats['views'])); ?> görüntülenme
                     </span>
                     <span class="meta-item">
                         <span class="dashicons dashicons-external"></span>
-                        <?php echo number_format($stats['clicks']); ?> tıklama
+                        <?php echo esc_html(number_format($stats['clicks'])); ?> tıklama
                     </span>
                 <?php else: ?>
-                    <span class="meta-item new-group">🆕 Yeni grup</span>
+                    <span class="meta-item new-group">&#127381; <?php echo esc_html('Yeni grup'); ?></span>
                 <?php endif; ?>
             </div>
         </div>
@@ -50,8 +50,8 @@ if (!defined('ABSPATH')) {
             <button id="save-and-continue" class="button button-secondary">
                 <span class="dashicons dashicons-plus-alt"></span> Kaydet ve Devam Et
             </button>
-            <a href="<?php echo admin_url('admin.php?page=esistenze-quick-menu'); ?>" class="button">
-                <span class="dashicons dashicons-arrow-left-alt"></span> Geri Dön
+            <a href="<?php echo esc_url(admin_url('admin.php?page=esistenze-quick-menu')); ?>" class="button">
+                <span class="dashicons dashicons-arrow-left-alt"></span> <?php echo esc_html('Geri Dön'); ?>
             </a>
         </div>
     </div>
@@ -86,11 +86,11 @@ if (!defined('ABSPATH')) {
                     <?php endforeach; ?>
                 <?php else: ?>
                     <div class="no-cards-message">
-                        <div class="no-cards-icon">🎯</div>
-                        <h4>Henüz kart eklenmemiş</h4>
-                        <p>İlk kartınızı eklemek için "Yeni Kart Ekle" butonuna tıklayın.</p>
+                        <div class="no-cards-icon">&#127919;</div>
+                        <h4><?php echo esc_html('Henüz kart eklenmemiş'); ?></h4>
+                        <p><?php echo esc_html('İlk kartınızı eklemek için "Yeni Kart Ekle" butonuna tıklayın.'); ?></p>
                         <button class="button button-primary" onclick="addNewCard()">
-                            <span class="dashicons dashicons-plus-alt"></span> İlk Kartı Ekle
+                            <span class="dashicons dashicons-plus-alt"></span> <?php echo esc_html('İlk Kartı Ekle'); ?>
                         </button>
                     </div>
                 <?php endif; ?>
@@ -149,8 +149,8 @@ if (!defined('ABSPATH')) {
                     <div class="shortcode-item">
                         <label>Izgara Görünüm:</label>
                         <div class="shortcode-wrapper">
-                            <code class="shortcode-text">[quick_menu_cards id="<?php echo $group_id; ?>"]</code>
-                            <button class="copy-shortcode" data-shortcode="[quick_menu_cards id=&quot;<?php echo $group_id; ?>&quot;]">
+                            <code class="shortcode-text">[quick_menu_cards id="<?php echo esc_attr($group_id); ?>"]</code>
+                            <button class="copy-shortcode" data-shortcode="[quick_menu_cards id=&quot;<?php echo esc_attr($group_id); ?>&quot;]">
                                 <span class="dashicons dashicons-clipboard"></span>
                             </button>
                         </div>
@@ -158,8 +158,8 @@ if (!defined('ABSPATH')) {
                     <div class="shortcode-item">
                         <label>Banner Görünüm:</label>
                         <div class="shortcode-wrapper">
-                            <code class="shortcode-text">[quick_menu_banner id="<?php echo $group_id; ?>"]</code>
-                            <button class="copy-shortcode" data-shortcode="[quick_menu_banner id=&quot;<?php echo $group_id; ?>&quot;]">
+                            <code class="shortcode-text">[quick_menu_banner id="<?php echo esc_attr($group_id); ?>"]</code>
+                            <button class="copy-shortcode" data-shortcode="[quick_menu_banner id=&quot;<?php echo esc_attr($group_id); ?>&quot;]">
                                 <span class="dashicons dashicons-clipboard"></span>
                             </button>
                         </div>

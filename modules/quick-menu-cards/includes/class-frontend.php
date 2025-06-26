@@ -14,7 +14,11 @@ class EsistenzeQuickMenuCardsFrontend {
     private $settings;
     private $cache_enabled;
     
-    public function __construct($module_url) {
+    /**
+     * Constructor
+     * @param string $module_url
+     */
+    public function __construct(string $module_url) {
         $this->module_url = $module_url;
         $this->settings = get_option('esistenze_quick_menu_settings', EsistenzeQuickMenuCards::get_default_settings());
         $this->cache_enabled = !empty($this->settings['cache_duration']);
@@ -32,7 +36,11 @@ class EsistenzeQuickMenuCardsFrontend {
         }
     }
     
-    public function enqueue_styles() {
+    /**
+     * Enqueue frontend styles and dynamic CSS
+     * @return void
+     */
+    public function enqueue_styles(): void {
         // Ana stil dosyası
         wp_enqueue_style(
             'esistenze-quick-menu-cards',
@@ -53,7 +61,12 @@ class EsistenzeQuickMenuCardsFrontend {
         }
     }
     
-    public function render_cards_grid($atts) {
+    /**
+     * Render cards grid layout
+     * @param array $atts
+     * @return string
+     */
+    public function render_cards_grid(array $atts): string {
         $atts = shortcode_atts(array(
             'id' => 0,
             'limit' => 0,
@@ -118,7 +131,12 @@ class EsistenzeQuickMenuCardsFrontend {
         return $output;
     }
     
-    public function render_banner_layout($atts) {
+    /**
+     * Render banner layout
+     * @param array $atts
+     * @return string
+     */
+    public function render_banner_layout(array $atts): string {
         $atts = shortcode_atts(array(
             'id' => 0,
             'limit' => 0,
@@ -303,7 +321,14 @@ class EsistenzeQuickMenuCardsFrontend {
         return $attrs;
     }
     
-    public function add_lazy_loading($attr, $attachment, $size) {
+    /**
+     * Add lazy loading to images
+     * @param array $attr
+     * @param int $attachment
+     * @param string|array $size
+     * @return array
+     */
+    public function add_lazy_loading(array $attr, int $attachment, $size): array {
         if (!empty($this->settings['enable_lazy_loading'])) {
             $attr['loading'] = 'lazy';
         }
@@ -336,7 +361,11 @@ class EsistenzeQuickMenuCardsFrontend {
         update_option('esistenze_quick_menu_analytics', $analytics);
     }
     
-    public function add_tracking_script() {
+    /**
+     * Add tracking script to footer
+     * @return void
+     */
+    public function add_tracking_script(): void {
         if (empty($this->settings['enable_analytics'])) {
             return;
         }
@@ -433,7 +462,11 @@ class EsistenzeQuickMenuCardsFrontend {
         <?php
     }
     
-    public function add_schema_markup() {
+    /**
+     * Add schema markup to head
+     * @return void
+     */
+    public function add_schema_markup(): void {
         if (empty($this->settings['enable_schema_markup'])) {
             return;
         }
@@ -559,8 +592,11 @@ class EsistenzeQuickMenuCardsFrontend {
         return defined('ESISTENZE_WP_KIT_VERSION') ? ESISTENZE_WP_KIT_VERSION : '1.0.0';
     }
     
-    // Cache helper methods
-    public function clear_cache() {
+    /**
+     * Clear frontend cache
+     * @return void
+     */
+    public function clear_cache(): void {
         // Transient cache temizle
         global $wpdb;
         $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_qmc_%' OR option_name LIKE '_transient_timeout_qmc_%'");
@@ -572,7 +608,11 @@ class EsistenzeQuickMenuCardsFrontend {
         do_action('esistenze_quick_menu_cache_cleared');
     }
     
-    public function get_cache_stats() {
+    /**
+     * Get cache stats
+     * @return array
+     */
+    public function get_cache_stats(): array {
         global $wpdb;
         $transients = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE '_transient_qmc_%'");
         

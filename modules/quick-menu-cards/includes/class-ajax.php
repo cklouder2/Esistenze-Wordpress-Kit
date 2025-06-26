@@ -8,8 +8,15 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * Quick Menu Cards - AJAX Class
+ * Handles all AJAX requests
+ */
 class EsistenzeQuickMenuCardsAjax {
     
+    /**
+     * Constructor
+     */
     public function __construct() {
         $this->init_hooks();
     }
@@ -30,7 +37,11 @@ class EsistenzeQuickMenuCardsAjax {
         add_action('wp_ajax_nopriv_esistenze_track_card_view', array($this, 'track_card_view'));
     }
     
-    public function save_card_group() {
+    /**
+     * Save card group via AJAX
+     * @return void
+     */
+    public function save_card_group(): void {
         // Nonce ve yetki kontrolü
         if (!$this->verify_nonce() || !current_user_can(esistenze_qmc_capability())) {
             wp_send_json_error('Yetkisiz erişim.');
@@ -78,7 +89,11 @@ class EsistenzeQuickMenuCardsAjax {
         }
     }
     
-    public function delete_card_group() {
+    /**
+     * Delete card group via AJAX
+     * @return void
+     */
+    public function delete_card_group(): void {
         if (!$this->verify_nonce() || !current_user_can(esistenze_qmc_capability())) {
             wp_send_json_error('Yetkisiz erişim.');
         }
@@ -114,7 +129,11 @@ class EsistenzeQuickMenuCardsAjax {
         }
     }
     
-    public function duplicate_card_group() {
+    /**
+     * Duplicate card group via AJAX
+     * @return void
+     */
+    public function duplicate_card_group(): void {
         if (!$this->verify_nonce() || !current_user_can(esistenze_qmc_capability())) {
             wp_send_json_error('Yetkisiz erişim.');
         }
@@ -160,7 +179,11 @@ class EsistenzeQuickMenuCardsAjax {
         }
     }
     
-    public function export_groups() {
+    /**
+     * Export groups via AJAX
+     * @return void
+     */
+    public function export_groups(): void {
         if (!$this->verify_nonce() || !current_user_can(esistenze_qmc_capability())) {
             wp_send_json_error('Yetkisiz erişim.');
         }
@@ -184,7 +207,11 @@ class EsistenzeQuickMenuCardsAjax {
         ));
     }
     
-    public function import_groups() {
+    /**
+     * Import groups via AJAX
+     * @return void
+     */
+    public function import_groups(): void {
         if (!$this->verify_nonce() || !current_user_can(esistenze_qmc_capability())) {
             wp_send_json_error('Yetkisiz erişim.');
         }
@@ -243,7 +270,11 @@ class EsistenzeQuickMenuCardsAjax {
         }
     }
     
-    public function preview_card() {
+    /**
+     * Preview card via AJAX
+     * @return void
+     */
+    public function preview_card(): void {
         if (!$this->verify_nonce()) {
             wp_send_json_error('Yetkisiz erişim.');
         }
@@ -265,7 +296,11 @@ class EsistenzeQuickMenuCardsAjax {
         ));
     }
     
-    public function track_card_click() {
+    /**
+     * Track card click via AJAX
+     * @return void
+     */
+    public function track_card_click(): void {
         $group_id = intval($_POST['group_id'] ?? 0);
         $card_index = intval($_POST['card_index'] ?? 0);
         
@@ -307,7 +342,11 @@ class EsistenzeQuickMenuCardsAjax {
         wp_send_json_success('Tıklama kaydedildi.');
     }
     
-    public function track_card_view() {
+    /**
+     * Track card view via AJAX
+     * @return void
+     */
+    public function track_card_view(): void {
         $group_id = intval($_POST['group_id'] ?? 0);
         
         if ($group_id < 0) {

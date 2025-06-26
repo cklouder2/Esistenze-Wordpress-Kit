@@ -14,7 +14,11 @@ class EsistenzeQuickMenuCardsShortcodes {
     private $cache_enabled;
     private $settings;
     
-    public function __construct($frontend) {
+    /**
+     * Constructor
+     * @param EsistenzeQuickMenuCardsFrontend $frontend
+     */
+    public function __construct(EsistenzeQuickMenuCardsFrontend $frontend) {
         $this->frontend = $frontend;
         $this->settings = get_option('esistenze_quick_menu_settings', EsistenzeQuickMenuCards::get_default_settings());
         $this->cache_enabled = !empty($this->settings['cache_duration']);
@@ -40,8 +44,11 @@ class EsistenzeQuickMenuCardsShortcodes {
     
     /**
      * Render cards shortcode
+     * @param array $atts
+     * @param string|null $content
+     * @return string
      */
-    public function render_cards_shortcode($atts, $content = null) {
+    public function render_cards_shortcode(array $atts, $content = null): string {
         $atts = shortcode_atts(array(
             'id' => 0,
             'limit' => 0,
@@ -60,8 +67,11 @@ class EsistenzeQuickMenuCardsShortcodes {
     
     /**
      * Render banner shortcode
+     * @param array $atts
+     * @param string|null $content
+     * @return string
      */
-    public function render_banner_shortcode($atts, $content = null) {
+    public function render_banner_shortcode(array $atts, $content = null): string {
         $atts = shortcode_atts(array(
             'id' => 0,
             'limit' => 0,
@@ -80,8 +90,11 @@ class EsistenzeQuickMenuCardsShortcodes {
     
     /**
      * Advanced cards shortcode with more options
+     * @param array $atts
+     * @param string|null $content
+     * @return string
      */
-    public function render_advanced_cards($atts, $content = null) {
+    public function render_advanced_cards(array $atts, $content = null): string {
         $atts = shortcode_atts(array(
             'id' => 0,
             'limit' => 0,
@@ -109,8 +122,9 @@ class EsistenzeQuickMenuCardsShortcodes {
     
     /**
      * Handle preview mode
+     * @return void
      */
-    public function handle_preview_mode() {
+    public function handle_preview_mode(): void {
         if (!isset($_GET['quick_menu_preview']) || !is_admin() || !current_user_can(esistenze_qmc_capability())) {
             return;
         }
@@ -233,9 +247,10 @@ class EsistenzeQuickMenuCardsShortcodes {
     }
     
     /**
-     * AJAX shortcode preview
+     * AJAX: Get shortcode preview
+     * @return void
      */
-    public function ajax_get_shortcode_preview() {
+    public function ajax_get_shortcode_preview(): void {
         if (!wp_verify_nonce($_POST['nonce'] ?? '', 'esistenze_quick_menu_nonce')) {
             wp_send_json_error('Nonce doğrulaması başarısız.');
         }
@@ -494,8 +509,9 @@ class EsistenzeQuickMenuCardsShortcodes {
     
     /**
      * Get shortcode documentation
+     * @return array
      */
-    public static function get_shortcode_documentation() {
+    public static function get_shortcode_documentation(): array {
         return array(
             'quick_menu_cards' => array(
                 'description' => 'Kartları ızgara düzeninde gösterir',
