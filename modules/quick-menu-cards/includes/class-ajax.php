@@ -43,7 +43,7 @@ class EsistenzeQuickMenuCardsAjax {
      */
     public function save_card_group(): void {
         // Nonce ve yetki kontrolü
-        if (!$this->verify_nonce() || !current_user_can('read')) {
+        if (!$this->verify_nonce() || !current_user_can($this->get_capability())) {
             wp_send_json_error('Yetkisiz erişim.');
         }
         
@@ -94,7 +94,7 @@ class EsistenzeQuickMenuCardsAjax {
      * @return void
      */
     public function delete_card_group(): void {
-        if (!$this->verify_nonce() || !current_user_can('read')) {
+        if (!$this->verify_nonce() || !current_user_can($this->get_capability())) {
             wp_send_json_error('Yetkisiz erişim.');
         }
         
@@ -380,6 +380,10 @@ class EsistenzeQuickMenuCardsAjax {
     // Helper methods
     private function verify_nonce() {
         return wp_verify_nonce($_POST['nonce'] ?? '', 'esistenze_quick_menu_nonce');
+    }
+    
+    private function get_capability() {
+        return function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'edit_posts';
     }
     
     private function sanitize_card_data($card_data) {

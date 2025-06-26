@@ -145,8 +145,8 @@ class EsistenzeWPKit {
     }
     
     public function admin_menu() {
-        // Geçici - en düşük yetki seviyesi
-        $cap = 'read';
+        // Admin paneli için güvenli yetki seviyesi
+        $cap = 'edit_posts';
         // Main menu page
         add_menu_page(
             'Esistenze WP Kit',
@@ -165,6 +165,16 @@ class EsistenzeWPKit {
             $cap,
             'esistenze-wp-kit',
             array($this, 'admin_dashboard')
+        );
+        
+        // Debug/Test submenu
+        add_submenu_page(
+            'esistenze-wp-kit',
+            'QMC Test',
+            'QMC Test',
+            'manage_options',
+            'esistenze-qmc-test',
+            array($this, 'qmc_test_page')
         );
         // Module submenus - only if module classes exist
         // Smart Buttons adds its own menu in its class
@@ -188,8 +198,7 @@ class EsistenzeWPKit {
                 array('EsistenzeCustomTopbar', 'admin_page')
             );
         }
-        // Quick Menu Cards - QMC kendi menüsünü ekliyor
-        
+        // Price Modifier
         if (class_exists('EsistenzePriceModifier') && method_exists('EsistenzePriceModifier', 'admin_page')) {
             add_submenu_page(
                 'esistenze-wp-kit',
@@ -396,6 +405,85 @@ class EsistenzeWPKit {
         <?php
     }
     
+    public function qmc_test_page() {
+        ?>
+        <div class="wrap">
+            <h1>Quick Menu Cards Test</h1>
+            
+            <?php
+            // Test başlat
+            $current_user = wp_get_current_user();
+            
+            echo '<div style="background: #fff; padding: 20px; margin: 20px 0; border-left: 4px solid #0073aa;">';
+            echo '<h3>Kullanıcı Bilgileri</h3>';
+            echo '<p><strong>Kullanıcı:</strong> ' . $current_user->user_login . '</p>';
+            echo '<p><strong>Roller:</strong> ' . implode(', ', $current_user->roles) . '</p>';
+            
+            $capabilities = array('read', 'edit_posts', 'manage_options');
+            echo '<h4>Yetki Kontrolleri:</h4>';
+            foreach ($capabilities as $cap) {
+                $has_cap = current_user_can($cap);
+                echo '<p>' . $cap . ': ' . ($has_cap ? '✅ VAR' : '❌ YOK') . '</p>';
+            }
+            echo '</div>';
+            
+            echo '<div style="background: #fff; padding: 20px; margin: 20px 0; border-left: 4px solid #46b450;">';
+            echo '<h3>Plugin Durum Kontrolü</h3>';
+            
+            $classes = array('EsistenzeWPKit', 'EsistenzeQuickMenuCards', 'EsistenzeQuickMenuCardsAdmin');
+            foreach ($classes as $class) {
+                $exists = class_exists($class);
+                echo '<p>' . $class . ': ' . ($exists ? '✅ Mevcut' : '❌ Yok') . '</p>';
+            }
+            
+            if (function_exists('esistenze_qmc_capability')) {
+                $cap = esistenze_qmc_capability();
+                echo '<p><strong>QMC Capability:</strong> ' . $cap . '</p>';
+                echo '<p><strong>Bu yetkiye sahipsiniz:</strong> ' . (current_user_can($cap) ? '✅ Evet' : '❌ Hayır') . '</p>';
+            } else {
+                echo '<p style="color: red;">❌ esistenze_qmc_capability fonksiyonu bulunamadı!</p>';
+            }
+            echo '</div>';
+            
+            echo '<div style="background: #fff; padding: 20px; margin: 20px 0; border-left: 4px solid #ff9800;">';
+            echo '<h3>Menü Kontrolleri</h3>';
+            
+            global $submenu;
+            if (isset($submenu['esistenze-wp-kit'])) {
+                echo '<p style="color: green;">✅ Esistenze menüsü bulundu!</p>';
+                echo '<ul>';
+                foreach ($submenu['esistenze-wp-kit'] as $item) {
+                    echo '<li>' . $item[0] . ' (Yetki: ' . $item[1] . ', Slug: ' . $item[2] . ')</li>';
+                }
+                echo '</ul>';
+            } else {
+                echo '<p style="color: red;">❌ Esistenze menüsü bulunamadı!</p>';
+            }
+            echo '</div>';
+            
+            echo '<div style="background: #fff; padding: 20px; margin: 20px 0; border-left: 4px solid #9c27b0;">';
+            echo '<h3>Test Sonucu</h3>';
+            
+            if (class_exists('EsistenzeQuickMenuCardsAdmin') && function_exists('esistenze_qmc_capability')) {
+                $cap = esistenze_qmc_capability();
+                if (current_user_can($cap)) {
+                    echo '<p style="color: green; font-size: 18px; font-weight: bold;">🎉 TÜM TESTLER BAŞARILI!</p>';
+                    echo '<p><a href="' . admin_url('admin.php?page=esistenze-quick-menu') . '" style="background: #0073aa; color: #fff; padding: 10px 15px; text-decoration: none; border-radius: 3px;">Quick Menu Cards\'a Git</a></p>';
+                } else {
+                    echo '<p style="color: red;">❌ Yetki sorunu: "' . $cap . '" yetkisine sahip değilsiniz.</p>';
+                    echo '<p><strong>Çözüm:</strong> Administrator rolüne sahip bir kullanıcı ile giriş yapın.</p>';
+                }
+            } else {
+                echo '<p style="color: red;">❌ Plugin yükleme sorunu var.</p>';
+                echo '<p><strong>Çözüm:</strong> Esistenze WordPress Kit pluginini aktifleştirin.</p>';
+            }
+            echo '</div>';
+            ?>
+            
+        </div>
+        <?php
+    }
+    
     public function admin_assets($hook) {
         if (strpos($hook, 'esistenze') !== false) {
             wp_enqueue_style('esistenze-admin-style', ESISTENZE_WP_KIT_URL . 'assets/admin.css', array(), ESISTENZE_WP_KIT_VERSION);
@@ -461,7 +549,7 @@ EsistenzeWPKit::getInstance();
 // YETKİ FONKSİYONU: Quick Menu Cards ve diğer modüller için global capability
 if (!function_exists('esistenze_qmc_capability')) {
     function esistenze_qmc_capability() {
-        // Basit ve güvenli - en düşük yetki seviyesi
-        return 'read';
+        // Admin paneli için güvenli yetki seviyesi
+        return 'edit_posts';
     }
 }
