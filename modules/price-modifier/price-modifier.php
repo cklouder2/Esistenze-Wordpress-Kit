@@ -110,7 +110,7 @@ class EsistenzePriceModifier {
     
     public function register_settings() {
         register_setting('esistenze_price_modifier', 'esistenze_price_modifier_enabled');
-        register_setting('esistenza_price_modifier', 'esistenze_price_note');
+        register_setting('esistenze_price_modifier', 'esistenze_price_note');
         register_setting('esistenze_price_modifier', 'esistenze_price_note_color');
         register_setting('esistenze_price_modifier', 'esistenze_price_bg_color');
         register_setting('esistenze_price_modifier', 'esistenze_price_border_color');
