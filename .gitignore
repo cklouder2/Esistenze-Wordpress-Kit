@@ -1,0 +1,26 @@
+# Dependency directories
+/vendor/
+/node_modules/
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE files
+.idea/
+.vscode/
+
+# PHPStorm
+*.iml
+
+# Backup files
+*.bak
+*.tmp
