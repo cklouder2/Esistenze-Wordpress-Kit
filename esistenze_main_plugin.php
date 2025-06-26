@@ -189,7 +189,50 @@ class EsistenzeWPKit {
             );
         }
         if (class_exists('EsistenzeQuickMenuCards')) {
-            // Quick Menu Cards artık submenu olarak ekleniyor
+            // Quick Menu Cards submenu olarak ekleniyor
+            $qmc_admin = null;
+            $qmc_instance = EsistenzeQuickMenuCards::getInstance();
+            if ($qmc_instance && property_exists($qmc_instance, 'admin')) {
+                $qmc_admin = $qmc_instance->admin;
+            }
+            
+            if ($qmc_admin) {
+                add_submenu_page(
+                    'esistenze-wp-kit',
+                    'Quick Menu Cards',
+                    'Quick Menu Cards',
+                    $cap,
+                    'esistenze-quick-menu',
+                    array($qmc_admin, 'admin_page')
+                );
+                
+                add_submenu_page(
+                    'esistenze-wp-kit',
+                    'QMC Ayarlar',
+                    'QMC Ayarlar',
+                    $cap,
+                    'esistenze-quick-menu-settings',
+                    array($qmc_admin, 'settings_page')
+                );
+                
+                add_submenu_page(
+                    'esistenze-wp-kit',
+                    'QMC İstatistikler',
+                    'QMC İstatistikler',
+                    $cap,
+                    'esistenze-quick-menu-analytics',
+                    array($qmc_admin, 'analytics_page')
+                );
+                
+                add_submenu_page(
+                    'esistenze-wp-kit',
+                    'QMC Araçlar',
+                    'QMC Araçlar',
+                    $cap,
+                    'esistenze-quick-menu-tools',
+                    array($qmc_admin, 'tools_page')
+                );
+            }
         }
         if (class_exists('EsistenzePriceModifier') && method_exists('EsistenzePriceModifier', 'admin_page')) {
             add_submenu_page(

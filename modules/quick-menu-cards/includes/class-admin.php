@@ -29,7 +29,7 @@ class EsistenzeQuickMenuCardsAdmin {
     }
     
     private function init_hooks() {
-        add_action('admin_menu', array($this, 'admin_menu'));
+        // Admin menü hook'unu kaldırdık - ana eklenti dosyasından kontrol edilecek
         add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         add_action('admin_notices', array($this, 'show_admin_notices'));
@@ -41,9 +41,9 @@ class EsistenzeQuickMenuCardsAdmin {
         add_action('wp_ajax_esistenze_live_preview', array($this, 'ajax_live_preview'));
         add_action('wp_ajax_esistenze_get_media', array($this, 'ajax_get_media'));
         
-        // Bulk actions
-        add_filter('bulk_actions-toplevel_page_esistenze-quick-menu', array($this, 'add_bulk_actions'));
-        add_filter('handle_bulk_actions-toplevel_page_esistenze-quick-menu', array($this, 'handle_bulk_actions'), 10, 3);
+        // Bulk actions - submenu için güncellendi
+        add_filter('bulk_actions-esistenze-wp-kit_page_esistenze-quick-menu', array($this, 'add_bulk_actions'));
+        add_filter('handle_bulk_actions-esistenze-wp-kit_page_esistenze-quick-menu', array($this, 'handle_bulk_actions'), 10, 3);
     }
     
     /**
@@ -56,53 +56,9 @@ class EsistenzeQuickMenuCardsAdmin {
     }
     
     /**
-     * Register admin menu and submenus
-     * @return void
+     * Admin menu artık ana eklenti dosyasından kontrol ediliyor
+     * Bu fonksiyon kullanılmıyor
      */
-    public function admin_menu(): void {
-        // Geçici - en düşük yetki seviyesi
-        $cap = 'read';
-        
-        // Ana eklenti menüsünün altına submenu olarak ekle
-        $this->page_hooks['main'] = add_submenu_page(
-            'esistenze-wp-kit',
-            'Quick Menu Cards',
-            'Quick Menu Cards',
-            $cap,
-            'esistenze-quick-menu',
-            array($this, 'admin_page')
-        );
-        
-        // Alt sayfalar
-        $this->page_hooks['settings'] = add_submenu_page(
-            'esistenze-wp-kit',
-            'QMC Ayarlar',
-            'QMC Ayarlar',
-            $cap,
-            'esistenze-quick-menu-settings',
-            array($this, 'settings_page')
-        );
-        $this->page_hooks['analytics'] = add_submenu_page(
-            'esistenze-wp-kit',
-            'QMC İstatistikler',
-            'QMC İstatistikler',
-            $cap,
-            'esistenze-quick-menu-analytics',
-            array($this, 'analytics_page')
-        );
-        $this->page_hooks['tools'] = add_submenu_page(
-            'esistenze-wp-kit',
-            'QMC Araçlar',
-            'QMC Araçlar',
-            $cap,
-            'esistenze-quick-menu-tools',
-            array($this, 'tools_page')
-        );
-        
-        foreach ($this->page_hooks as $hook) {
-            add_action('load-' . $hook, array($this, 'add_contextual_help'));
-        }
-    }
     
     /**
      * Register plugin settings

@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 if (!class_exists('EsistenzeQuickMenuCards')) {
 class EsistenzeQuickMenuCards {
     private static $instance = null;
-    private $admin;
+    public $admin;
     private $frontend;
     private $shortcodes;
     private $ajax;
