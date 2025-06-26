@@ -1,6 +1,6 @@
 <?php
 /*
- * Quick Menu Cards Module - Ana Dosya
+ * Quick Menu Cards Module - Ana Dosya (Düzeltilmiş)
  * Part of Esistenze WordPress Kit
  */
 
@@ -10,7 +10,21 @@ if (!defined('ABSPATH')) {
 
 if (!function_exists('esistenze_qmc_capability')) {
     function esistenze_qmc_capability() {
-        return apply_filters('esistenze_quick_menu_capability', 'manage_options');
+        // Daha esnek yetkilendirme sistemi
+        $capability = apply_filters('esistenze_quick_menu_capability', 'edit_pages');
+        
+        // Fallback kontrolleri
+        if (!current_user_can($capability)) {
+            if (current_user_can('manage_options')) {
+                return 'manage_options';
+            } elseif (current_user_can('edit_pages')) {
+                return 'edit_pages';
+            } elseif (current_user_can('edit_posts')) {
+                return 'edit_posts';
+            }
+        }
+        
+        return $capability;
     }
 }
 
@@ -19,6 +33,7 @@ class EsistenzeQuickMenuCards {
     private static $instance = null;
     private $module_path;
     private $module_url;
+    private $capability;
     
     public static function getInstance() {
         if (self::$instance === null) {
@@ -36,42 +51,52 @@ class EsistenzeQuickMenuCards {
             ? ESISTENZE_WP_KIT_URL . 'modules/quick-menu-cards/' 
             : plugin_dir_url(__FILE__);
         
+        // Hook'ları başlat
+        add_action('init', array($this, 'early_init'));
+        add_action('admin_init', array($this, 'admin_init'));
+        add_action('wp_loaded', array($this, 'late_init'));
+    }
+    
+    public function early_init() {
+        // Capability'yi erkenden belirle
+        $this->capability = esistenze_qmc_capability();
+        
+        // Shortcode'ları kaydet
+        $this->register_shortcodes();
+    }
+    
+    public function admin_init() {
+        // Admin sınıfını yükle ve başlat
+        if (is_admin() && current_user_can($this->capability)) {
+            $this->load_admin_classes();
+        }
+    }
+    
+    public function late_init() {
+        // Frontend ve AJAX handler'ları yükle
         $this->load_dependencies();
-        $this->init_hooks();
+        $this->schedule_cleanup();
     }
     
     private function load_dependencies() {
         // Frontend sınıfını yükle
-        require_once $this->module_path . 'includes/class-frontend.php';
-        
-        // Admin paneli sadece admin area'da yükle
-        if (is_admin()) {
-            require_once $this->module_path . 'includes/class-admin.php';
+        if (file_exists($this->module_path . 'includes/class-frontend.php')) {
+            require_once $this->module_path . 'includes/class-frontend.php';
+            new EsistenzeQuickMenuCardsFrontend($this->module_url);
         }
         
         // AJAX handler'ları yükle
-        require_once $this->module_path . 'includes/class-ajax.php';
+        if (file_exists($this->module_path . 'includes/class-ajax.php')) {
+            require_once $this->module_path . 'includes/class-ajax.php';
+            new EsistenzeQuickMenuCardsAjax();
+        }
     }
     
-    private function init_hooks() {
-        add_action('init', array($this, 'init'));
-        
-        // Frontend'i başlat
-        new EsistenzeQuickMenuCardsFrontend($this->module_url);
-        
-        // Admin paneli başlat (sadece admin area'da)
-        if (is_admin()) {
+    private function load_admin_classes() {
+        if (file_exists($this->module_path . 'includes/class-admin.php')) {
+            require_once $this->module_path . 'includes/class-admin.php';
             new EsistenzeQuickMenuCardsAdmin($this->module_path, $this->module_url);
         }
-        
-        // AJAX handler'ları başlat
-        new EsistenzeQuickMenuCardsAjax();
-    }
-    
-    public function init() {
-        // Genel başlatma işlemleri
-        $this->register_shortcodes();
-        $this->schedule_cleanup();
     }
     
     private function register_shortcodes() {
@@ -84,11 +109,19 @@ class EsistenzeQuickMenuCards {
     }
     
     public function render_shortcode($atts) {
+        if (!class_exists('EsistenzeQuickMenuCardsFrontend')) {
+            return '<p>Quick Menu Cards modülü yüklenemedi.</p>';
+        }
+        
         $frontend = new EsistenzeQuickMenuCardsFrontend($this->module_url);
         return $frontend->render_cards_grid($atts);
     }
     
     public function render_banner_shortcode($atts) {
+        if (!class_exists('EsistenzeQuickMenuCardsFrontend')) {
+            return '<p>Quick Menu Cards modülü yüklenemedi.</p>';
+        }
+        
         $frontend = new EsistenzeQuickMenuCardsFrontend($this->module_url);
         return $frontend->render_banner_layout($atts);
     }
@@ -122,6 +155,10 @@ class EsistenzeQuickMenuCards {
         return defined('ESISTENZE_WP_KIT_VERSION') ? ESISTENZE_WP_KIT_VERSION : '1.0.0';
     }
     
+    public function get_capability() {
+        return $this->capability;
+    }
+    
     public static function get_default_settings() {
         return array(
             'default_button_text' => 'Detayları Gör',
@@ -129,7 +166,11 @@ class EsistenzeQuickMenuCards {
             'enable_analytics' => true,
             'enable_lazy_loading' => true,
             'enable_schema_markup' => true,
-            'cache_duration' => 3600
+            'cache_duration' => 3600,
+            'mobile_columns' => 2,
+            'max_cards_per_group' => 20,
+            'auto_save' => true,
+            'debug_mode' => false
         );
     }
     
@@ -143,13 +184,25 @@ class EsistenzeQuickMenuCards {
                     'title' => 'Örnek Kart 1',
                     'desc' => 'Bu bir örnek kart açıklamasıdır.',
                     'img' => '',
-                    'url' => '#'
+                    'url' => '#',
+                    'enabled' => true,
+                    'featured' => false,
+                    'new_tab' => false,
+                    'order' => 0,
+                    'created_at' => current_time('mysql'),
+                    'updated_at' => current_time('mysql')
                 ),
                 array(
                     'title' => 'Örnek Kart 2',
                     'desc' => 'Bu ikinci örnek kart açıklamasıdır.',
                     'img' => '',
-                    'url' => '#'
+                    'url' => '#',
+                    'enabled' => true,
+                    'featured' => false,
+                    'new_tab' => false,
+                    'order' => 1,
+                    'created_at' => current_time('mysql'),
+                    'updated_at' => current_time('mysql')
                 )
             );
             
@@ -161,18 +214,42 @@ class EsistenzeQuickMenuCards {
         if (empty($settings)) {
             update_option('esistenze_quick_menu_settings', self::get_default_settings());
         }
+        
+        // Analytics tablosu oluştur
+        $analytics = get_option('esistenze_quick_menu_analytics', array());
+        if (empty($analytics)) {
+            update_option('esistenze_quick_menu_analytics', array(
+                'total_views' => 0,
+                'total_clicks' => 0,
+                'group_views' => array(),
+                'group_clicks' => array(),
+                'card_clicks' => array(),
+                'last_view' => '',
+                'last_click' => '',
+                'click_details' => array()
+            ));
+        }
     }
     
     // Deactivation hook
     public static function deactivate() {
         wp_clear_scheduled_hook('esistenze_quick_menu_cleanup');
     }
+    
+    // Debug fonksiyonu
+    public function debug_info() {
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('Quick Menu Cards Debug: Capability = ' . $this->capability);
+            error_log('Quick Menu Cards Debug: Current User Can = ' . (current_user_can($this->capability) ? 'YES' : 'NO'));
+            error_log('Quick Menu Cards Debug: Is Admin = ' . (is_admin() ? 'YES' : 'NO'));
+        }
+    }
 }
 
 // Initialize
 add_action('plugins_loaded', function() {
     EsistenzeQuickMenuCards::getInstance();
-});
+}, 10);
 
 // Hooks
 register_activation_hook(__FILE__, array('EsistenzeQuickMenuCards', 'activate'));
