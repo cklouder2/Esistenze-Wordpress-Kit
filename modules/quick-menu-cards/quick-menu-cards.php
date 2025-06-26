@@ -255,4 +255,3 @@ add_action('plugins_loaded', function() {
 register_activation_hook(__FILE__, array('EsistenzeQuickMenuCards', 'activate'));
 register_deactivation_hook(__FILE__, array('EsistenzeQuickMenuCards', 'deactivate'));
 
-?>
