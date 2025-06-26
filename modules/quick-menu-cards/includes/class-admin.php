@@ -1,6 +1,11 @@
 <?php
-/*
- * Quick Menu Cards - Admin Class (Basitleştirilmiş)
+/**
+ * Quick Menu Cards Admin Sınıfı
+ * Yeniden yazılmış, basit ve çalışır versiyon
+ * 
+ * @package Esistenze WordPress Kit
+ * @subpackage Quick Menu Cards
+ * @version 2.0.0
  */
 
 if (!defined('ABSPATH')) {
@@ -11,527 +16,663 @@ class EsistenzeQuickMenuCardsAdmin {
     
     private $module_path;
     private $module_url;
-    private $page_hooks = array();
+    private $version = '2.0.0';
     
     public function __construct($module_path, $module_url) {
         $this->module_path = $module_path;
         $this->module_url = $module_url;
-        $this->init_hooks();
-    }
-    
-    private function init_hooks() {
-        // Menü ekleme - ana plugin menüsünün altında
-        add_action('admin_menu', array($this, 'admin_menu'), 15);
-        add_action('admin_init', array($this, 'register_settings'));
-        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         
-        // Form işlemleri
-        add_action('admin_post_esistenze_save_group', array($this, 'handle_save_group'));
-        add_action('admin_post_esistenze_delete_group', array($this, 'handle_delete_group'));
+        $this->init();
     }
     
     /**
-     * Admin menü kaydı - sadece submenu
+     * Admin panelini başlat
      */
-    public function admin_menu() {
-        // Güvenli yetki seviyesi kullan
+    private function init() {
+        // Admin hook'ları ekle
+        add_action('admin_menu', array($this, 'add_admin_menu'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+        add_action('admin_init', array($this, 'handle_form_submissions'));
+        
+        // Debug log
+        if (function_exists('qmc_log_error')) {
+            qmc_log_error('QMC Admin sınıfı başlatıldı');
+        }
+    }
+    
+    /**
+     * Admin menüsünü ekle
+     */
+    public function add_admin_menu() {
+        // Kullanılacak yetki
         $capability = function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'edit_posts';
         
-        // Ana eklenti menüsü altında submenu olarak ekle
-        $this->page_hooks['main'] = add_submenu_page(
-            'esistenze-wp-kit',              // Parent slug
-            'Quick Menu Cards',              // Page title
-            'Quick Menu Cards',              // Menu title
-            $capability,                     // Capability
-            'esistenze-quick-menu',          // Menu slug
-            array($this, 'admin_page')       // Callback
+        // Ana sayfa - Quick Menu Cards
+        add_submenu_page(
+            'esistenze-wp-kit',
+            'Quick Menu Cards',
+            'Quick Menu Cards',
+            $capability,
+            'quick-menu-cards',
+            array($this, 'admin_page_cards')
         );
         
-        // Ayarlar submenu
-        $this->page_hooks['settings'] = add_submenu_page(
+        // Ayarlar sayfası
+        add_submenu_page(
             'esistenze-wp-kit',
             'QMC Ayarlar',
             'QMC Ayarlar',
             $capability,
-            'esistenze-quick-menu-settings',
-            array($this, 'settings_page')
+            'quick-menu-cards-settings',
+            array($this, 'admin_page_settings')
         );
         
-        // İstatistikler submenu
-        $this->page_hooks['analytics'] = add_submenu_page(
+        // İstatistikler sayfası
+        add_submenu_page(
             'esistenze-wp-kit',
             'QMC İstatistikler',
             'QMC İstatistikler',
             $capability,
-            'esistenze-quick-menu-analytics',
-            array($this, 'analytics_page')
+            'quick-menu-cards-analytics',
+            array($this, 'admin_page_analytics')
         );
         
-        // Araçlar submenu
-        $this->page_hooks['tools'] = add_submenu_page(
+        // Araçlar sayfası
+        add_submenu_page(
             'esistenze-wp-kit',
             'QMC Araçlar',
             'QMC Araçlar',
             $capability,
-            'esistenze-quick-menu-tools',
-            array($this, 'tools_page')
+            'quick-menu-cards-tools',
+            array($this, 'admin_page_tools')
         );
     }
     
     /**
-     * Settings kayıt
-     */
-    public function register_settings() {
-        register_setting('esistenze_quick_menu_cards', 'esistenze_quick_menu_kartlari', array(
-            'sanitize_callback' => array($this, 'sanitize_cards_data'),
-            'default' => array()
-        ));
-        
-        register_setting('esistenze_quick_menu_settings', 'esistenze_quick_menu_settings', array(
-            'sanitize_callback' => array($this, 'sanitize_settings_data'),
-            'default' => EsistenzeQuickMenuCards::get_default_settings()
-        ));
-    }
-    
-    /**
-     * Admin script yükleme
+     * Admin scriptlerini yükle
      */
     public function enqueue_admin_scripts($hook) {
-        // Sadece kendi sayfalarımızda yükle
-        if (!in_array($hook, $this->page_hooks)) {
+        // Sadece QMC sayfalarında yükle
+        if (strpos($hook, 'quick-menu-cards') === false) {
             return;
         }
         
-        wp_enqueue_media();
-        wp_enqueue_script('jquery-ui-sortable');
-        wp_enqueue_style('wp-color-picker');
-        wp_enqueue_script('wp-color-picker');
-        
+        // CSS
         wp_enqueue_style(
-            'esistenze-quick-menu-admin',
+            'qmc-admin-css',
             $this->module_url . 'assets/admin.css',
-            array('wp-color-picker'),
-            '2.0.0'
+            array(),
+            $this->version
         );
         
+        // JavaScript
         wp_enqueue_script(
-            'esistenze-quick-menu-admin',
+            'qmc-admin-js',
             $this->module_url . 'assets/admin.js',
-            array('jquery', 'wp-color-picker', 'jquery-ui-sortable'),
-            '2.0.0',
+            array('jquery', 'jquery-ui-sortable'),
+            $this->version,
             true
         );
         
-        wp_localize_script('esistenze-quick-menu-admin', 'esistenzeAdmin', array(
+        // WordPress medya kütüphanesi
+        wp_enqueue_media();
+        
+        // Localize script
+        wp_localize_script('qmc-admin-js', 'qmc_ajax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('esistenze_quick_menu_nonce'),
-            'post_url' => admin_url('admin-post.php'),
+            'nonce' => wp_create_nonce('qmc_nonce'),
             'strings' => array(
-                'delete_confirm' => 'Bu grubu silmek istediğinizden emin misiniz?',
-                'save_success' => 'Başarıyla kaydedildi!',
-                'save_error' => 'Kayıt sırasında hata oluştu.',
-                'loading' => 'Yükleniyor...'
+                'confirm_delete' => 'Bu kartı silmek istediğinizden emin misiniz?',
+                'confirm_delete_group' => 'Bu grubu ve tüm kartlarını silmek istediğinizden emin misiniz?',
+                'loading' => 'Yükleniyor...',
+                'error' => 'Bir hata oluştu!',
+                'success' => 'İşlem başarılı!'
             )
         ));
     }
     
     /**
-     * Ana admin sayfası
+     * Form gönderimlerini işle
      */
-    public function admin_page() {
-        // Yetki kontrolü
-        $capability = function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'edit_posts';
-        if (!current_user_can($capability)) {
-            wp_die(__('Bu sayfaya erişim yetkiniz yok.'));
-        }
-        
-        // Mevcut tab
-        $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'groups';
-        
-        echo '<div class="wrap">';
-        echo '<h1>Quick Menu Cards</h1>';
-        
-        // Debug bilgisi (sadece geliştirme ortamında)
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            $current_user = wp_get_current_user();
-            echo '<div class="notice notice-info">';
-            echo '<p><strong>Debug:</strong> Kullanıcı: ' . esc_html($current_user->user_login) . ' | ';
-            echo 'Roller: ' . esc_html(implode(', ', $current_user->roles)) . ' | ';
-            echo 'Capability: ' . esc_html($capability) . ' | ';
-            echo 'Yetki: ' . (current_user_can($capability) ? 'VAR' : 'YOK') . '</p>';
-            echo '</div>';
-        }
-        
-        // Başarı mesajları
-        if (isset($_GET['saved'])) {
-            echo '<div class="notice notice-success is-dismissible"><p>Grup başarıyla kaydedildi!</p></div>';
-        }
-        if (isset($_GET['deleted'])) {
-            echo '<div class="notice notice-success is-dismissible"><p>Grup başarıyla silindi!</p></div>';
-        }
-        
-        // Tab menüsü
-        $this->render_admin_tabs($current_tab);
-        
-        // Tab içeriği
-        switch ($current_tab) {
-            case 'edit':
-                $this->render_edit_page();
-                break;
-            case 'groups':
-            default:
-                $this->render_groups_page();
-                break;
-        }
-        
-        echo '</div>';
-    }
-    
-    /**
-     * Tab menüsü
-     */
-    private function render_admin_tabs($current_tab) {
-        $tabs = array(
-            'groups' => 'Gruplar',
-            'edit' => 'Düzenle'
-        );
-        
-        echo '<nav class="nav-tab-wrapper">';
-        foreach ($tabs as $tab => $name) {
-            $class = ($tab == $current_tab) ? 'nav-tab-active' : '';
-            echo '<a href="?page=esistenze-quick-menu&tab=' . $tab . '" class="nav-tab ' . $class . '">' . $name . '</a>';
-        }
-        echo '</nav>';
-    }
-    
-    /**
-     * Gruplar sayfası
-     */
-    private function render_groups_page() {
-        $kartlar = get_option('esistenze_quick_menu_kartlari', array());
-        
-        echo '<div class="tablenav top">';
-        echo '<div class="alignleft actions">';
-        echo '<a href="?page=esistenze-quick-menu&tab=edit" class="button button-primary">Yeni Grup Ekle</a>';
-        echo '</div>';
-        echo '</div>';
-        
-        if (empty($kartlar)) {
-            echo '<div class="notice notice-info">';
-            echo '<p>Henüz hiç grup oluşturulmamış. <a href="?page=esistenze-quick-menu&tab=edit">İlk grubunuzu oluşturun</a>.</p>';
-            echo '</div>';
+    public function handle_form_submissions() {
+        if (!isset($_POST['qmc_action']) || !wp_verify_nonce($_POST['qmc_nonce'], 'qmc_admin_action')) {
             return;
         }
         
-        echo '<table class="wp-list-table widefat fixed striped">';
-        echo '<thead><tr><th>Grup Adı</th><th>Kart Sayısı</th><th>Shortcode</th><th>İşlemler</th></tr></thead>';
-        echo '<tbody>';
-        
-        foreach ($kartlar as $group_id => $group) {
-            $card_count = is_array($group['cards']) ? count($group['cards']) : 0;
-            echo '<tr>';
-            echo '<td><strong>' . esc_html($group['name']) . '</strong></td>';
-            echo '<td>' . $card_count . ' kart</td>';
-            echo '<td><code>[quick_menu_cards id="' . $group_id . '"]</code></td>';
-            echo '<td>';
-            echo '<a href="?page=esistenze-quick-menu&tab=edit&group_id=' . $group_id . '" class="button button-small">Düzenle</a> ';
-            echo '<a href="' . wp_nonce_url(admin_url('admin-post.php?action=esistenze_delete_group&group_id=' . $group_id), 'delete_group_' . $group_id) . '" class="button button-small button-link-delete" onclick="return confirm(\'Silmek istediğinizden emin misiniz?\')">Sil</a>';
-            echo '</td>';
-            echo '</tr>';
+        if (!current_user_can('edit_posts')) {
+            wp_die('Yetkiniz yok!');
         }
         
-        echo '</tbody></table>';
+        $action = sanitize_text_field($_POST['qmc_action']);
+        
+        switch ($action) {
+            case 'save_group':
+                $this->save_group();
+                break;
+            case 'delete_group':
+                $this->delete_group();
+                break;
+            case 'save_settings':
+                $this->save_settings();
+                break;
+            case 'reset_settings':
+                $this->reset_settings();
+                break;
+        }
     }
     
     /**
-     * Düzenleme sayfası
+     * Ana kart yönetim sayfası
      */
-    private function render_edit_page() {
-        $group_id = isset($_GET['group_id']) ? intval($_GET['group_id']) : 0;
-        $kartlar = get_option('esistenze_quick_menu_kartlari', array());
-        $group = $group_id && isset($kartlar[$group_id]) ? $kartlar[$group_id] : array(
-            'name' => '',
-            'cards' => array()
-        );
+    public function admin_page_cards() {
+        $cards = EsistenzeQuickMenuCards::get_cards();
+        $current_group = isset($_GET['group']) ? sanitize_text_field($_GET['group']) : '';
         
-        echo '<form method="post" action="' . admin_url('admin-post.php') . '">';
-        wp_nonce_field('save_group_' . $group_id, 'esistenze_nonce');
-        echo '<input type="hidden" name="action" value="esistenze_save_group">';
-        echo '<input type="hidden" name="group_id" value="' . $group_id . '">';
+        ?>
+        <div class="wrap">
+            <h1>Quick Menu Cards</h1>
+            
+            <?php $this->show_notices(); ?>
+            
+            <div class="qmc-admin-container">
+                <div class="qmc-sidebar">
+                    <h3>Gruplar</h3>
+                    <div class="qmc-groups">
+                        <?php if (empty($cards)): ?>
+                            <p>Henüz grup yok.</p>
+                        <?php else: ?>
+                            <?php foreach ($cards as $group_id => $group_data): ?>
+                                <div class="qmc-group-item <?php echo $current_group === $group_id ? 'active' : ''; ?>">
+                                    <a href="<?php echo admin_url('admin.php?page=quick-menu-cards&group=' . urlencode($group_id)); ?>">
+                                        <?php echo esc_html($group_data['name'] ?? $group_id); ?>
+                                        <span class="count">(<?php echo count($group_data['cards'] ?? array()); ?>)</span>
+                                    </a>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <button type="button" class="button button-primary" id="qmc-new-group">
+                        Yeni Grup Ekle
+                    </button>
+                </div>
+                
+                <div class="qmc-main-content">
+                    <?php if ($current_group): ?>
+                        <?php $this->render_group_editor($current_group, $cards[$current_group] ?? null); ?>
+                    <?php else: ?>
+                        <?php $this->render_dashboard($cards); ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
         
-        echo '<table class="form-table">';
-        echo '<tr>';
-        echo '<th scope="row"><label for="group_name">Grup Adı</label></th>';
-        echo '<td><input type="text" id="group_name" name="group_name" value="' . esc_attr($group['name']) . '" class="regular-text" required></td>';
-        echo '</tr>';
-        echo '</table>';
-        
-        echo '<h3>Kartlar</h3>';
-        echo '<div id="cards-container">';
-        
-        if (!empty($group['cards'])) {
-            foreach ($group['cards'] as $index => $card) {
-                $this->render_card_editor($index, $card);
-            }
-        } else {
-            $this->render_card_editor(0, array());
-        }
-        
-        echo '</div>';
-        
-        echo '<p><button type="button" id="add-card" class="button">Yeni Kart Ekle</button></p>';
-        
-        echo '<p class="submit">';
-        echo '<input type="submit" name="submit" class="button button-primary" value="Kaydet">';
-        echo ' <a href="?page=esistenze-quick-menu" class="button">İptal</a>';
-        echo '</p>';
-        
-        echo '</form>';
-        
-        // JavaScript template
-        echo '<script type="text/template" id="card-template">';
-        $this->render_card_editor('{{INDEX}}', array());
-        echo '</script>';
+        <!-- Yeni Grup Modal -->
+        <div id="qmc-new-group-modal" class="qmc-modal" style="display: none;">
+            <div class="qmc-modal-content">
+                <span class="qmc-modal-close">&times;</span>
+                <h2>Yeni Grup Oluştur</h2>
+                <form method="post">
+                    <?php wp_nonce_field('qmc_admin_action', 'qmc_nonce'); ?>
+                    <input type="hidden" name="qmc_action" value="save_group">
+                    
+                    <table class="form-table">
+                        <tr>
+                            <th><label for="group_id">Grup ID</label></th>
+                            <td><input type="text" id="group_id" name="group_id" class="regular-text" required></td>
+                        </tr>
+                        <tr>
+                            <th><label for="group_name">Grup Adı</label></th>
+                            <td><input type="text" id="group_name" name="group_name" class="regular-text" required></td>
+                        </tr>
+                    </table>
+                    
+                    <p class="submit">
+                        <input type="submit" class="button button-primary" value="Grup Oluştur">
+                    </p>
+                </form>
+            </div>
+        </div>
+        <?php
     }
     
     /**
-     * Kart editörü
+     * Dashboard görünümü
      */
-    private function render_card_editor($index, $card = array()) {
-        $card = wp_parse_args($card, array(
-            'title' => '',
-            'description' => '',
-            'image' => '',
-            'link' => '',
-            'button_text' => 'Detayları Gör',
-            'type' => 'card'
-        ));
+    private function render_dashboard($cards) {
+        ?>
+        <div class="qmc-dashboard">
+            <h2>Quick Menu Cards Dashboard</h2>
+            
+            <div class="qmc-stats">
+                <div class="qmc-stat-box">
+                    <h3><?php echo count($cards); ?></h3>
+                    <p>Toplam Grup</p>
+                </div>
+                
+                <div class="qmc-stat-box">
+                    <h3><?php 
+                        $total_cards = 0;
+                        foreach ($cards as $group) {
+                            $total_cards += count($group['cards'] ?? array());
+                        }
+                        echo $total_cards;
+                    ?></h3>
+                    <p>Toplam Kart</p>
+                </div>
+            </div>
+            
+            <div class="qmc-quick-actions">
+                <h3>Hızlı İşlemler</h3>
+                <p>
+                    <button type="button" class="button button-primary" id="qmc-new-group">
+                        Yeni Grup Oluştur
+                    </button>
+                    <a href="<?php echo admin_url('admin.php?page=quick-menu-cards-settings'); ?>" class="button">
+                        Ayarlara Git
+                    </a>
+                </p>
+            </div>
+            
+            <?php if (!empty($cards)): ?>
+                <div class="qmc-recent-groups">
+                    <h3>Son Gruplar</h3>
+                    <table class="wp-list-table widefat fixed striped">
+                        <thead>
+                            <tr>
+                                <th>Grup Adı</th>
+                                <th>Kart Sayısı</th>
+                                <th>Shortcode</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($cards as $group_id => $group_data): ?>
+                                <tr>
+                                    <td>
+                                        <strong><?php echo esc_html($group_data['name'] ?? $group_id); ?></strong>
+                                    </td>
+                                    <td><?php echo count($group_data['cards'] ?? array()); ?></td>
+                                    <td>
+                                        <code>[quick_menu_cards group="<?php echo esc_attr($group_id); ?>"]</code>
+                                        <button type="button" class="button-link qmc-copy-shortcode" data-shortcode='[quick_menu_cards group="<?php echo esc_attr($group_id); ?>"]'>
+                                            Kopyala
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <a href="<?php echo admin_url('admin.php?page=quick-menu-cards&group=' . urlencode($group_id)); ?>" class="button button-small">
+                                            Düzenle
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Grup editörü
+     */
+    private function render_group_editor($group_id, $group_data) {
+        if (!$group_data) {
+            echo '<div class="notice notice-error"><p>Grup bulunamadı!</p></div>';
+            return;
+        }
         
-        echo '<div class="card-editor" data-index="' . $index . '" style="border: 1px solid #ccc; padding: 15px; margin-bottom: 15px;">';
-        echo '<h4>Kart #' . ($index + 1) . ' <button type="button" class="button-link remove-card" style="color: red;">Sil</button></h4>';
+        $cards = $group_data['cards'] ?? array();
+        ?>
+        <div class="qmc-group-editor">
+            <div class="qmc-group-header">
+                <h2><?php echo esc_html($group_data['name'] ?? $group_id); ?></h2>
+                <div class="qmc-group-actions">
+                    <button type="button" class="button button-primary" id="qmc-add-card">
+                        Yeni Kart Ekle
+                    </button>
+                    <button type="button" class="button button-secondary qmc-copy-shortcode" data-shortcode='[quick_menu_cards group="<?php echo esc_attr($group_id); ?>"]'>
+                        Shortcode Kopyala
+                    </button>
+                </div>
+            </div>
+            
+            <div class="qmc-cards-container">
+                <?php if (empty($cards)): ?>
+                    <div class="qmc-no-cards">
+                        <p>Bu grupta henüz kart yok.</p>
+                        <button type="button" class="button button-primary" id="qmc-add-first-card">
+                            İlk Kartı Ekle
+                        </button>
+                    </div>
+                <?php else: ?>
+                    <div id="qmc-cards-list" class="qmc-cards-list">
+                        <?php foreach ($cards as $index => $card): ?>
+                            <?php $this->render_card_item($group_id, $index, $card); ?>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
         
-        echo '<table class="form-table">';
-        echo '<tr>';
-        echo '<th><label>Başlık</label></th>';
-        echo '<td><input type="text" name="cards[' . $index . '][title]" value="' . esc_attr($card['title']) . '" class="regular-text"></td>';
-        echo '</tr>';
-        echo '<tr>';
-        echo '<th><label>Açıklama</label></th>';
-        echo '<td><textarea name="cards[' . $index . '][description]" rows="3" class="large-text">' . esc_textarea($card['description']) . '</textarea></td>';
-        echo '</tr>';
-        echo '<tr>';
-        echo '<th><label>Görsel URL</label></th>';
-        echo '<td>';
-        echo '<input type="url" name="cards[' . $index . '][image]" value="' . esc_url($card['image']) . '" class="regular-text image-url">';
-        echo ' <button type="button" class="button select-image">Görsel Seç</button>';
-        echo '</td>';
-        echo '</tr>';
-        echo '<tr>';
-        echo '<th><label>Link</label></th>';
-        echo '<td><input type="url" name="cards[' . $index . '][link]" value="' . esc_url($card['link']) . '" class="regular-text"></td>';
-        echo '</tr>';
-        echo '<tr>';
-        echo '<th><label>Buton Metni</label></th>';
-        echo '<td><input type="text" name="cards[' . $index . '][button_text]" value="' . esc_attr($card['button_text']) . '" class="regular-text"></td>';
-        echo '</tr>';
-        echo '</table>';
-        
-        echo '</div>';
+        <!-- Kart Editör Modal -->
+        <div id="qmc-card-modal" class="qmc-modal" style="display: none;">
+            <div class="qmc-modal-content qmc-modal-large">
+                <span class="qmc-modal-close">&times;</span>
+                <h2 id="qmc-modal-title">Kart Düzenle</h2>
+                <form id="qmc-card-form">
+                    <input type="hidden" id="card-group-id" value="<?php echo esc_attr($group_id); ?>">
+                    <input type="hidden" id="card-index" value="">
+                    
+                    <table class="form-table">
+                        <tr>
+                            <th><label for="card-title">Başlık</label></th>
+                            <td><input type="text" id="card-title" class="regular-text" required></td>
+                        </tr>
+                        <tr>
+                            <th><label for="card-description">Açıklama</label></th>
+                            <td><textarea id="card-description" rows="3" class="large-text"></textarea></td>
+                        </tr>
+                        <tr>
+                            <th><label for="card-url">URL</label></th>
+                            <td><input type="url" id="card-url" class="regular-text"></td>
+                        </tr>
+                        <tr>
+                            <th><label for="card-image">Resim</label></th>
+                            <td>
+                                <input type="hidden" id="card-image-id">
+                                <input type="text" id="card-image-url" class="regular-text" readonly>
+                                <button type="button" id="card-select-image" class="button">Resim Seç</button>
+                                <button type="button" id="card-remove-image" class="button">Kaldır</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><label for="card-button-text">Buton Metni</label></th>
+                            <td><input type="text" id="card-button-text" class="regular-text"></td>
+                        </tr>
+                    </table>
+                    
+                    <p class="submit">
+                        <button type="button" id="qmc-save-card" class="button button-primary">Kaydet</button>
+                        <button type="button" class="button qmc-modal-close">İptal</button>
+                    </p>
+                </form>
+            </div>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Kart öğesi render et
+     */
+    private function render_card_item($group_id, $index, $card) {
+        ?>
+        <div class="qmc-card-item" data-index="<?php echo $index; ?>">
+            <div class="qmc-card-preview">
+                <?php if (!empty($card['image'])): ?>
+                    <img src="<?php echo esc_url($card['image']); ?>" alt="<?php echo esc_attr($card['title'] ?? ''); ?>">
+                <?php else: ?>
+                    <div class="qmc-card-no-image">Resim Yok</div>
+                <?php endif; ?>
+            </div>
+            
+            <div class="qmc-card-info">
+                <h4><?php echo esc_html($card['title'] ?? 'Başlıksız'); ?></h4>
+                <p><?php echo esc_html(wp_trim_words($card['description'] ?? '', 10)); ?></p>
+            </div>
+            
+            <div class="qmc-card-actions">
+                <button type="button" class="button button-small qmc-edit-card" data-index="<?php echo $index; ?>">
+                    Düzenle
+                </button>
+                <button type="button" class="button button-small qmc-delete-card" data-index="<?php echo $index; ?>">
+                    Sil
+                </button>
+                <span class="qmc-drag-handle">⋮⋮</span>
+            </div>
+        </div>
+        <?php
     }
     
     /**
      * Ayarlar sayfası
      */
-    public function settings_page() {
-        $capability = function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'edit_posts';
-        if (!current_user_can($capability)) {
-            wp_die(__('Bu sayfaya erişim yetkiniz yok.'));
-        }
+    public function admin_page_settings() {
+        $settings = EsistenzeQuickMenuCards::get_settings();
         
-        echo '<div class="wrap">';
-        echo '<h1>QMC Ayarlar</h1>';
-        echo '<p>Ayarlar sayfası yakında eklenecek.</p>';
-        echo '</div>';
+        ?>
+        <div class="wrap">
+            <h1>Quick Menu Cards Ayarları</h1>
+            
+            <?php $this->show_notices(); ?>
+            
+            <form method="post">
+                <?php wp_nonce_field('qmc_admin_action', 'qmc_nonce'); ?>
+                <input type="hidden" name="qmc_action" value="save_settings">
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">Varsayılan Buton Metni</th>
+                        <td>
+                            <input type="text" name="default_button_text" value="<?php echo esc_attr($settings['default_button_text']); ?>" class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Banner Buton Metni</th>
+                        <td>
+                            <input type="text" name="banner_button_text" value="<?php echo esc_attr($settings['banner_button_text']); ?>" class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Grid Sütun Sayısı</th>
+                        <td>
+                            <select name="grid_columns">
+                                <option value="1" <?php selected($settings['grid_columns'], 1); ?>>1</option>
+                                <option value="2" <?php selected($settings['grid_columns'], 2); ?>>2</option>
+                                <option value="3" <?php selected($settings['grid_columns'], 3); ?>>3</option>
+                                <option value="4" <?php selected($settings['grid_columns'], 4); ?>>4</option>
+                                <option value="5" <?php selected($settings['grid_columns'], 5); ?>>5</option>
+                                <option value="6" <?php selected($settings['grid_columns'], 6); ?>>6</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Animasyonları Etkinleştir</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="enable_animations" value="1" <?php checked($settings['enable_animations']); ?>>
+                                Hover ve geçiş animasyonlarını etkinleştir
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Açıklamaları Göster</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="show_descriptions" value="1" <?php checked($settings['show_descriptions']); ?>>
+                                Kart açıklamalarını göster
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Resimleri Göster</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="show_images" value="1" <?php checked($settings['show_images']); ?>>
+                                Kart resimlerini göster
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Özel CSS</th>
+                        <td>
+                            <textarea name="custom_css" rows="10" cols="50" class="large-text code"><?php echo esc_textarea($settings['custom_css']); ?></textarea>
+                            <p class="description">Kartlar için özel CSS kodları</p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <?php submit_button('Ayarları Kaydet'); ?>
+                
+                <p>
+                    <button type="submit" name="qmc_action" value="reset_settings" class="button button-secondary" onclick="return confirm('Tüm ayarları sıfırlamak istediğinizden emin misiniz?')">
+                        Ayarları Sıfırla
+                    </button>
+                </p>
+            </form>
+        </div>
+        <?php
     }
     
     /**
      * İstatistikler sayfası
      */
-    public function analytics_page() {
-        $capability = function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'edit_posts';
-        if (!current_user_can($capability)) {
-            wp_die(__('Bu sayfaya erişim yetkiniz yok.'));
-        }
-        
-        echo '<div class="wrap">';
-        echo '<h1>QMC İstatistikler</h1>';
-        echo '<p>İstatistikler sayfası yakında eklenecek.</p>';
-        echo '</div>';
+    public function admin_page_analytics() {
+        ?>
+        <div class="wrap">
+            <h1>Quick Menu Cards İstatistikleri</h1>
+            
+            <div class="qmc-analytics">
+                <p>İstatistik özellikleri yakında eklenecek...</p>
+            </div>
+        </div>
+        <?php
     }
     
     /**
      * Araçlar sayfası
      */
-    public function tools_page() {
-        $capability = function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'edit_posts';
-        if (!current_user_can($capability)) {
-            wp_die(__('Bu sayfaya erişim yetkiniz yok.'));
-        }
-        
-        echo '<div class="wrap">';
-        echo '<h1>QMC Araçlar</h1>';
-        echo '<p>Araçlar sayfası yakında eklenecek.</p>';
-        echo '</div>';
+    public function admin_page_tools() {
+        ?>
+        <div class="wrap">
+            <h1>Quick Menu Cards Araçları</h1>
+            
+            <div class="qmc-tools">
+                <p>Araç özellikleri yakında eklenecek...</p>
+            </div>
+        </div>
+        <?php
     }
     
     /**
-     * Grup kaydetme işlemi
+     * Bildirimleri göster
      */
-    public function handle_save_group() {
-        $group_id = isset($_POST['group_id']) ? intval($_POST['group_id']) : 0;
+    private function show_notices() {
+        if (isset($_GET['message'])) {
+            $message = sanitize_text_field($_GET['message']);
+            $messages = array(
+                'group_saved' => 'Grup başarıyla kaydedildi!',
+                'group_deleted' => 'Grup başarıyla silindi!',
+                'settings_saved' => 'Ayarlar başarıyla kaydedildi!',
+                'settings_reset' => 'Ayarlar sıfırlandı!',
+                'error' => 'Bir hata oluştu!'
+            );
+            
+            if (isset($messages[$message])) {
+                $class = $message === 'error' ? 'notice-error' : 'notice-success';
+                echo '<div class="notice ' . $class . ' is-dismissible"><p>' . esc_html($messages[$message]) . '</p></div>';
+            }
+        }
+    }
+    
+    /**
+     * Grup kaydet
+     */
+    private function save_group() {
+        $group_id = sanitize_text_field($_POST['group_id']);
+        $group_name = sanitize_text_field($_POST['group_name']);
         
-        // Nonce kontrolü
-        if (!wp_verify_nonce($_POST['esistenze_nonce'], 'save_group_' . $group_id)) {
-            wp_die('Güvenlik kontrolü başarısız.');
+        if (empty($group_id) || empty($group_name)) {
+            wp_redirect(admin_url('admin.php?page=quick-menu-cards&message=error'));
+            exit;
         }
         
-        // Yetki kontrolü
-        $capability = function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'edit_posts';
-        if (!current_user_can($capability)) {
-            wp_die('Bu işlemi yapma yetkiniz yok.');
-        }
-        
-        $kartlar = get_option('esistenze_quick_menu_kartlari', array());
-        
-        // Yeni grup ID'si oluştur
-        if ($group_id == 0) {
-            $group_id = time();
-        }
-        
-        // Grup verilerini hazırla
-        $group_data = array(
-            'name' => sanitize_text_field($_POST['group_name']),
-            'cards' => array(),
-            'created' => $group_id == time() ? current_time('mysql') : (isset($kartlar[$group_id]['created']) ? $kartlar[$group_id]['created'] : current_time('mysql')),
-            'updated' => current_time('mysql')
+        $cards = EsistenzeQuickMenuCards::get_cards();
+        $cards[$group_id] = array(
+            'name' => $group_name,
+            'cards' => array()
         );
         
-        // Kartları işle
-        if (isset($_POST['cards']) && is_array($_POST['cards'])) {
-            foreach ($_POST['cards'] as $card_data) {
-                if (!empty($card_data['title'])) {
-                    $group_data['cards'][] = array(
-                        'title' => sanitize_text_field($card_data['title']),
-                        'description' => sanitize_textarea_field($card_data['description']),
-                        'image' => esc_url_raw($card_data['image']),
-                        'link' => esc_url_raw($card_data['link']),
-                        'button_text' => sanitize_text_field($card_data['button_text']),
-                        'type' => 'card'
-                    );
-                }
-            }
-        }
+        EsistenzeQuickMenuCards::save_cards($cards);
         
-        // Kaydet
-        $kartlar[$group_id] = $group_data;
-        update_option('esistenze_quick_menu_kartlari', $kartlar);
-        
-        // Yönlendir
-        wp_redirect(admin_url('admin.php?page=esistenze-quick-menu&saved=1'));
+        wp_redirect(admin_url('admin.php?page=quick-menu-cards&group=' . urlencode($group_id) . '&message=group_saved'));
         exit;
     }
     
     /**
-     * Grup silme işlemi
+     * Grup sil
      */
-    public function handle_delete_group() {
-        $group_id = isset($_GET['group_id']) ? intval($_GET['group_id']) : 0;
+    private function delete_group() {
+        $group_id = sanitize_text_field($_POST['group_id']);
         
-        // Nonce kontrolü
-        if (!wp_verify_nonce($_GET['_wpnonce'], 'delete_group_' . $group_id)) {
-            wp_die('Güvenlik kontrolü başarısız.');
+        if (empty($group_id)) {
+            wp_redirect(admin_url('admin.php?page=quick-menu-cards&message=error'));
+            exit;
         }
         
-        // Yetki kontrolü
-        $capability = function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'edit_posts';
-        if (!current_user_can($capability)) {
-            wp_die('Bu işlemi yapma yetkiniz yok.');
-        }
+        $cards = EsistenzeQuickMenuCards::get_cards();
+        unset($cards[$group_id]);
         
-        $kartlar = get_option('esistenze_quick_menu_kartlari', array());
+        EsistenzeQuickMenuCards::save_cards($cards);
         
-        if (isset($kartlar[$group_id])) {
-            unset($kartlar[$group_id]);
-            update_option('esistenze_quick_menu_kartlari', $kartlar);
-        }
-        
-        // Yönlendir
-        wp_redirect(admin_url('admin.php?page=esistenze-quick-menu&deleted=1'));
+        wp_redirect(admin_url('admin.php?page=quick-menu-cards&message=group_deleted'));
         exit;
     }
     
     /**
-     * Veri sanitizasyonu
+     * Ayarları kaydet
      */
-    public function sanitize_cards_data($input) {
-        if (!is_array($input)) {
-            return array();
-        }
+    private function save_settings() {
+        $settings = array(
+            'default_button_text' => sanitize_text_field($_POST['default_button_text']),
+            'banner_button_text' => sanitize_text_field($_POST['banner_button_text']),
+            'grid_columns' => intval($_POST['grid_columns']),
+            'enable_animations' => isset($_POST['enable_animations']),
+            'show_descriptions' => isset($_POST['show_descriptions']),
+            'show_images' => isset($_POST['show_images']),
+            'custom_css' => sanitize_textarea_field($_POST['custom_css'])
+        );
         
-        $sanitized = array();
-        foreach ($input as $key => $group) {
-            if (!is_array($group)) {
-                continue;
-            }
-            
-            $sanitized[$key] = array(
-                'name' => isset($group['name']) ? sanitize_text_field($group['name']) : '',
-                'cards' => isset($group['cards']) && is_array($group['cards']) ? $group['cards'] : array(),
-                'created' => isset($group['created']) ? $group['created'] : current_time('mysql'),
-                'updated' => current_time('mysql')
-            );
-        }
+        EsistenzeQuickMenuCards::save_settings($settings);
         
-        return $sanitized;
+        wp_redirect(admin_url('admin.php?page=quick-menu-cards-settings&message=settings_saved'));
+        exit;
     }
     
     /**
-     * Ayarlar sanitizasyonu
+     * Ayarları sıfırla
      */
-    public function sanitize_settings_data($input) {
-        if (!is_array($input)) {
-            return EsistenzeQuickMenuCards::get_default_settings();
-        }
+    private function reset_settings() {
+        $default_settings = EsistenzeQuickMenuCards::get_default_settings();
+        EsistenzeQuickMenuCards::save_settings($default_settings);
         
-        $defaults = EsistenzeQuickMenuCards::get_default_settings();
-        $sanitized = array();
-        
-        foreach ($defaults as $key => $default_value) {
-            if (isset($input[$key])) {
-                switch ($key) {
-                    case 'default_button_text':
-                    case 'banner_button_text':
-                        $sanitized[$key] = sanitize_text_field($input[$key]);
-                        break;
-                    case 'cache_duration':
-                        $sanitized[$key] = intval($input[$key]);
-                        break;
-                    case 'enable_lazy_loading':
-                    case 'enable_analytics':
-                        $sanitized[$key] = (bool) $input[$key];
-                        break;
-                    case 'custom_css':
-                        $sanitized[$key] = wp_strip_all_tags($input[$key]);
-                        break;
-                    default:
-                        $sanitized[$key] = $default_value;
-                }
-            } else {
-                $sanitized[$key] = $default_value;
-            }
-        }
-        
-        return $sanitized;
+        wp_redirect(admin_url('admin.php?page=quick-menu-cards-settings&message=settings_reset'));
+        exit;
+    }
+    
+    /**
+     * Admin menü metodu (eski uyumluluk için)
+     */
+    public function admin_menu() {
+        // Bu metod artık add_admin_menu() tarafından yapılıyor
+        $this->add_admin_menu();
+    }
+    
+    /**
+     * Admin sayfa metodu (eski uyumluluk için)
+     */
+    public function admin_page() {
+        // Bu metod artık admin_page_cards() tarafından yapılıyor
+        $this->admin_page_cards();
+    }
+    
+    /**
+     * Ayarlar sayfası metodu (eski uyumluluk için)
+     */
+    public function settings_page() {
+        // Bu metod artık admin_page_settings() tarafından yapılıyor
+        $this->admin_page_settings();
     }
 }
 ?>

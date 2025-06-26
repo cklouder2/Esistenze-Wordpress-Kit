@@ -1,533 +1,373 @@
 <?php
-/*
- * Quick Menu Cards - AJAX Class
- * Handles all AJAX requests
+/**
+ * Quick Menu Cards AJAX Sınıfı
+ * Yeniden yazılmış, basit ve çalışır versiyon
+ * 
+ * @package Esistenze WordPress Kit
+ * @subpackage Quick Menu Cards
+ * @version 2.0.0
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-/**
- * Quick Menu Cards - AJAX Class
- * Handles all AJAX requests
- */
 class EsistenzeQuickMenuCardsAjax {
     
-    /**
-     * Constructor
-     */
     public function __construct() {
-        $this->init_hooks();
-    }
-    
-    private function init_hooks() {
-        // Admin AJAX handlers
-        add_action('wp_ajax_esistenze_save_card_group', array($this, 'save_card_group'));
-        add_action('wp_ajax_esistenze_delete_card_group', array($this, 'delete_card_group'));
-        add_action('wp_ajax_esistenze_duplicate_card_group', array($this, 'duplicate_card_group'));
-        add_action('wp_ajax_esistenze_export_groups', array($this, 'export_groups'));
-        add_action('wp_ajax_esistenze_import_groups', array($this, 'import_groups'));
-        add_action('wp_ajax_esistenze_preview_card', array($this, 'preview_card'));
-        
-        // Public AJAX handlers (both logged in and not logged in users)
-        add_action('wp_ajax_esistenze_track_card_click', array($this, 'track_card_click'));
-        add_action('wp_ajax_nopriv_esistenze_track_card_click', array($this, 'track_card_click'));
-        add_action('wp_ajax_esistenze_track_card_view', array($this, 'track_card_view'));
-        add_action('wp_ajax_nopriv_esistenze_track_card_view', array($this, 'track_card_view'));
+        $this->init();
     }
     
     /**
-     * Save card group via AJAX
-     * @return void
+     * AJAX hook'larını başlat
      */
-    public function save_card_group(): void {
-        // Nonce ve yetki kontrolü
-        if (!$this->verify_nonce() || !current_user_can($this->get_capability())) {
-            wp_send_json_error('Yetkisiz erişim.');
+    private function init() {
+        // Kart işlemleri
+        add_action('wp_ajax_qmc_add_card', array($this, 'add_card'));
+        add_action('wp_ajax_qmc_update_card', array($this, 'update_card'));
+        add_action('wp_ajax_qmc_delete_card', array($this, 'delete_card'));
+        add_action('wp_ajax_qmc_reorder_cards', array($this, 'reorder_cards'));
+        
+        // Grup işlemleri
+        add_action('wp_ajax_qmc_delete_group', array($this, 'delete_group'));
+        
+        // Veri işlemleri
+        add_action('wp_ajax_qmc_get_cards', array($this, 'get_cards'));
+        add_action('wp_ajax_qmc_export_data', array($this, 'export_data'));
+        add_action('wp_ajax_qmc_import_data', array($this, 'import_data'));
+        
+        // Debug log
+        if (function_exists('qmc_log_error')) {
+            qmc_log_error('QMC AJAX sınıfı başlatıldı');
+        }
+    }
+    
+    /**
+     * Yeni kart ekle
+     */
+    public function add_card() {
+        // Güvenlik kontrolü
+        if (!wp_verify_nonce($_POST['nonce'], 'qmc_nonce') || !current_user_can('edit_posts')) {
+            wp_send_json_error('Yetkiniz yok!');
         }
         
-        $group_id = intval($_POST['group_id'] ?? 0);
-        $cards_data = $_POST['cards_data'] ?? array();
+        $group_id = sanitize_text_field($_POST['group_id']);
+        $card_data = $this->sanitize_card_data($_POST['card_data']);
         
-        if (!is_array($cards_data)) {
-            wp_send_json_error('Geçersiz kart verisi.');
+        if (empty($group_id) || empty($card_data['title'])) {
+            wp_send_json_error('Gerekli alanlar eksik!');
         }
         
-        // Kart verilerini sanitize et
-        $sanitized_cards = array();
-        foreach ($cards_data as $card_data) {
-            $sanitized_card = $this->sanitize_card_data($card_data);
-            
-            // Validation
-            $validation = $this->validate_card_data($sanitized_card);
-            if ($validation !== true) {
-                wp_send_json_error('Kart verisi hatası: ' . implode(', ', $validation));
-            }
-            
-            $sanitized_cards[] = $sanitized_card;
+        // Mevcut kartları al
+        $cards = EsistenzeQuickMenuCards::get_cards();
+        
+        if (!isset($cards[$group_id])) {
+            wp_send_json_error('Grup bulunamadı!');
         }
         
-        // Veritabanına kaydet
-        $kartlar = get_option('esistenze_quick_menu_kartlari', array());
-        $kartlar[$group_id] = $sanitized_cards;
+        // Yeni kartı ekle
+        if (!isset($cards[$group_id]['cards'])) {
+            $cards[$group_id]['cards'] = array();
+        }
         
-        $result = update_option('esistenze_quick_menu_kartlari', $kartlar);
+        $cards[$group_id]['cards'][] = $card_data;
+        $card_index = count($cards[$group_id]['cards']) - 1;
         
-        if ($result) {
-            // Cache temizle
-            $this->clear_cache();
-            
+        // Kaydet
+        if (EsistenzeQuickMenuCards::save_cards($cards)) {
             wp_send_json_success(array(
-                'message' => 'Grup başarıyla kaydedildi!',
-                'group_id' => $group_id,
-                'card_count' => count($sanitized_cards),
-                'redirect' => admin_url('admin.php?page=esistenze-quick-menu')
+                'message' => 'Kart başarıyla eklendi!',
+                'card' => $card_data,
+                'index' => $card_index
             ));
         } else {
-            wp_send_json_error('Kayıt sırasında hata oluştu.');
+            wp_send_json_error('Kart kaydedilemedi!');
         }
     }
     
     /**
-     * Delete card group via AJAX
-     * @return void
+     * Kartı güncelle
      */
-    public function delete_card_group(): void {
-        if (!$this->verify_nonce() || !current_user_can($this->get_capability())) {
-            wp_send_json_error('Yetkisiz erişim.');
+    public function update_card() {
+        // Güvenlik kontrolü
+        if (!wp_verify_nonce($_POST['nonce'], 'qmc_nonce') || !current_user_can('edit_posts')) {
+            wp_send_json_error('Yetkiniz yok!');
         }
         
-        $group_id = intval($_POST['group_id'] ?? -1);
+        $group_id = sanitize_text_field($_POST['group_id']);
+        $card_index = intval($_POST['card_index']);
+        $card_data = $this->sanitize_card_data($_POST['card_data']);
         
-        if ($group_id < 0) {
-            wp_send_json_error('Geçersiz grup ID.');
+        if (empty($group_id) || $card_index < 0 || empty($card_data['title'])) {
+            wp_send_json_error('Gerekli alanlar eksik!');
         }
         
-        $kartlar = get_option('esistenze_quick_menu_kartlari', array());
+        // Mevcut kartları al
+        $cards = EsistenzeQuickMenuCards::get_cards();
         
-        if (!isset($kartlar[$group_id])) {
-            wp_send_json_error('Grup bulunamadı.');
+        if (!isset($cards[$group_id]['cards'][$card_index])) {
+            wp_send_json_error('Kart bulunamadı!');
+        }
+        
+        // Kartı güncelle
+        $cards[$group_id]['cards'][$card_index] = $card_data;
+        
+        // Kaydet
+        if (EsistenzeQuickMenuCards::save_cards($cards)) {
+            wp_send_json_success(array(
+                'message' => 'Kart başarıyla güncellendi!',
+                'card' => $card_data
+            ));
+        } else {
+            wp_send_json_error('Kart güncellenemedi!');
+        }
+    }
+    
+    /**
+     * Kart sil
+     */
+    public function delete_card() {
+        // Güvenlik kontrolü
+        if (!wp_verify_nonce($_POST['nonce'], 'qmc_nonce') || !current_user_can('edit_posts')) {
+            wp_send_json_error('Yetkiniz yok!');
+        }
+        
+        $group_id = sanitize_text_field($_POST['group_id']);
+        $card_index = intval($_POST['card_index']);
+        
+        if (empty($group_id) || $card_index < 0) {
+            wp_send_json_error('Gerekli alanlar eksik!');
+        }
+        
+        // Mevcut kartları al
+        $cards = EsistenzeQuickMenuCards::get_cards();
+        
+        if (!isset($cards[$group_id]['cards'][$card_index])) {
+            wp_send_json_error('Kart bulunamadı!');
+        }
+        
+        // Kartı sil
+        unset($cards[$group_id]['cards'][$card_index]);
+        
+        // Array'i yeniden indeksle
+        $cards[$group_id]['cards'] = array_values($cards[$group_id]['cards']);
+        
+        // Kaydet
+        if (EsistenzeQuickMenuCards::save_cards($cards)) {
+            wp_send_json_success(array(
+                'message' => 'Kart başarıyla silindi!',
+                'remaining_count' => count($cards[$group_id]['cards'])
+            ));
+        } else {
+            wp_send_json_error('Kart silinemedi!');
+        }
+    }
+    
+    /**
+     * Kart sırasını değiştir
+     */
+    public function reorder_cards() {
+        // Güvenlik kontrolü
+        if (!wp_verify_nonce($_POST['nonce'], 'qmc_nonce') || !current_user_can('edit_posts')) {
+            wp_send_json_error('Yetkiniz yok!');
+        }
+        
+        $group_id = sanitize_text_field($_POST['group_id']);
+        $card_order = array_map('intval', $_POST['card_order']);
+        
+        if (empty($group_id) || empty($card_order)) {
+            wp_send_json_error('Gerekli alanlar eksik!');
+        }
+        
+        // Mevcut kartları al
+        $cards = EsistenzeQuickMenuCards::get_cards();
+        
+        if (!isset($cards[$group_id]['cards'])) {
+            wp_send_json_error('Grup bulunamadı!');
+        }
+        
+        $original_cards = $cards[$group_id]['cards'];
+        $reordered_cards = array();
+        
+        // Yeni sıraya göre kartları düzenle
+        foreach ($card_order as $old_index) {
+            if (isset($original_cards[$old_index])) {
+                $reordered_cards[] = $original_cards[$old_index];
+            }
+        }
+        
+        $cards[$group_id]['cards'] = $reordered_cards;
+        
+        // Kaydet
+        if (EsistenzeQuickMenuCards::save_cards($cards)) {
+            wp_send_json_success(array(
+                'message' => 'Kart sırası güncellendi!',
+                'new_order' => $card_order
+            ));
+        } else {
+            wp_send_json_error('Sıralama kaydedilemedi!');
+        }
+    }
+    
+    /**
+     * Grup sil
+     */
+    public function delete_group() {
+        // Güvenlik kontrolü
+        if (!wp_verify_nonce($_POST['nonce'], 'qmc_nonce') || !current_user_can('edit_posts')) {
+            wp_send_json_error('Yetkiniz yok!');
+        }
+        
+        $group_id = sanitize_text_field($_POST['group_id']);
+        
+        if (empty($group_id)) {
+            wp_send_json_error('Grup ID gerekli!');
+        }
+        
+        // Mevcut kartları al
+        $cards = EsistenzeQuickMenuCards::get_cards();
+        
+        if (!isset($cards[$group_id])) {
+            wp_send_json_error('Grup bulunamadı!');
         }
         
         // Grubu sil
-        unset($kartlar[$group_id]);
+        unset($cards[$group_id]);
         
-        // Array'i yeniden indexle
-        $kartlar = array_values($kartlar);
-        
-        $result = update_option('esistenze_quick_menu_kartlari', $kartlar);
-        
-        if ($result) {
-            // Analytics verilerini de temizle
-            $this->cleanup_group_analytics($group_id);
-            $this->clear_cache();
-            
-            wp_send_json_success('Grup başarıyla silindi!');
-        } else {
-            wp_send_json_error('Silme işlemi başarısız.');
-        }
-    }
-    
-    /**
-     * Duplicate card group via AJAX
-     * @return void
-     */
-    public function duplicate_card_group(): void {
-        if (!$this->verify_nonce() || !current_user_can($this->get_capability())) {
-            wp_send_json_error('Yetkisiz erişim.');
-        }
-        
-        $group_id = intval($_POST['group_id'] ?? -1);
-        
-        if ($group_id < 0) {
-            wp_send_json_error('Geçersiz grup ID.');
-        }
-        
-        $kartlar = get_option('esistenze_quick_menu_kartlari', array());
-        
-        if (!isset($kartlar[$group_id])) {
-            wp_send_json_error('Grup bulunamadı.');
-        }
-        
-        // Grubu kopyala
-        $new_group = $kartlar[$group_id];
-        
-        // Kartların başlıklarına "Kopya" ekle
-        foreach ($new_group as &$card) {
-            if (!empty($card['title'])) {
-                $card['title'] .= ' - Kopya';
-            }
-            $card['created_at'] = current_time('mysql');
-            $card['updated_at'] = current_time('mysql');
-        }
-        
-        $kartlar[] = $new_group;
-        $new_group_id = count($kartlar) - 1;
-        
-        $result = update_option('esistenze_quick_menu_kartlari', $kartlar);
-        
-        if ($result) {
-            $this->clear_cache();
-            
+        // Kaydet
+        if (EsistenzeQuickMenuCards::save_cards($cards)) {
             wp_send_json_success(array(
-                'message' => 'Grup başarıyla kopyalandı!',
-                'new_group_id' => $new_group_id
+                'message' => 'Grup başarıyla silindi!',
+                'remaining_groups' => count($cards)
             ));
         } else {
-            wp_send_json_error('Kopyalama işlemi başarısız.');
+            wp_send_json_error('Grup silinemedi!');
         }
     }
     
     /**
-     * Export groups via AJAX
-     * @return void
+     * Kartları al
      */
-    public function export_groups(): void {
-        if (!$this->verify_nonce() || !current_user_can($this->get_capability())) {
-            wp_send_json_error('Yetkisiz erişim.');
+    public function get_cards() {
+        // Güvenlik kontrolü
+        if (!wp_verify_nonce($_POST['nonce'], 'qmc_nonce') || !current_user_can('edit_posts')) {
+            wp_send_json_error('Yetkiniz yok!');
         }
         
-        $kartlar = get_option('esistenze_quick_menu_kartlari', array());
-        $settings = get_option('esistenze_quick_menu_settings', array());
-        $analytics = get_option('esistenze_quick_menu_analytics', array());
+        $group_id = sanitize_text_field($_POST['group_id']);
+        
+        if (empty($group_id)) {
+            // Tüm kartları döndür
+            $cards = EsistenzeQuickMenuCards::get_cards();
+        } else {
+            // Belirli grubu döndür
+            $cards = EsistenzeQuickMenuCards::get_cards($group_id);
+        }
+        
+        wp_send_json_success(array(
+            'cards' => $cards,
+            'count' => is_array($cards) ? count($cards) : 0
+        ));
+    }
+    
+    /**
+     * Veri dışa aktar
+     */
+    public function export_data() {
+        // Güvenlik kontrolü
+        if (!wp_verify_nonce($_POST['nonce'], 'qmc_nonce') || !current_user_can('manage_options')) {
+            wp_send_json_error('Yetkiniz yok!');
+        }
+        
+        $cards = EsistenzeQuickMenuCards::get_cards();
+        $settings = EsistenzeQuickMenuCards::get_settings();
         
         $export_data = array(
-            'version' => $this->get_version(),
+            'version' => '2.0.0',
             'export_date' => current_time('mysql'),
-            'site_url' => home_url(),
-            'groups' => $kartlar,
-            'settings' => $settings,
-            'analytics' => $analytics
+            'cards' => $cards,
+            'settings' => $settings
         );
         
         wp_send_json_success(array(
             'data' => $export_data,
-            'filename' => 'quick-menu-cards-export-' . date('Y-m-d-H-i-s') . '.json'
+            'filename' => 'qmc-export-' . date('Y-m-d-H-i-s') . '.json'
         ));
     }
     
     /**
-     * Import groups via AJAX
-     * @return void
+     * Veri içe aktar
      */
-    public function import_groups(): void {
-        if (!$this->verify_nonce() || !current_user_can($this->get_capability())) {
-            wp_send_json_error('Yetkisiz erişim.');
-        }
-        
-        $import_data = $_POST['import_data'] ?? '';
-        
-        if (empty($import_data)) {
-            wp_send_json_error('Import verisi boş.');
-        }
-        
-        // JSON decode
-        $data = json_decode(stripslashes($import_data), true);
-        
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            wp_send_json_error('Geçersiz JSON formatı.');
-        }
-        
-        // Veri kontrolü
-        if (!is_array($data) || empty($data['groups'])) {
-            wp_send_json_error('Geçersiz veri formatı.');
-        }
-        
+    public function import_data() {
         // Güvenlik kontrolü
-        foreach ($data['groups'] as $group) {
-            if (!is_array($group)) {
-                wp_send_json_error('Geçersiz grup formatı.');
-            }
-            
-            foreach ($group as $card) {
-                if (!is_array($card)) {
-                    wp_send_json_error('Geçersiz kart formatı.');
-                }
-                
-                // Sanitize card data
-                $card = $this->sanitize_card_data($card);
-            }
+        if (!wp_verify_nonce($_POST['nonce'], 'qmc_nonce') || !current_user_can('manage_options')) {
+            wp_send_json_error('Yetkiniz yok!');
+        }
+        
+        if (!isset($_FILES['import_file'])) {
+            wp_send_json_error('Dosya seçilmedi!');
+        }
+        
+        $file = $_FILES['import_file'];
+        
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            wp_send_json_error('Dosya yüklenirken hata oluştu!');
+        }
+        
+        $file_content = file_get_contents($file['tmp_name']);
+        $import_data = json_decode($file_content, true);
+        
+        if (!$import_data || !isset($import_data['cards'])) {
+            wp_send_json_error('Geçersiz dosya formatı!');
         }
         
         // Verileri kaydet
-        $result1 = update_option('esistenze_quick_menu_kartlari', $data['groups']);
+        $cards_saved = EsistenzeQuickMenuCards::save_cards($import_data['cards']);
+        $settings_saved = true;
         
-        $result2 = true;
-        if (!empty($data['settings'])) {
-            $result2 = update_option('esistenze_quick_menu_settings', $data['settings']);
+        if (isset($import_data['settings'])) {
+            $settings_saved = EsistenzeQuickMenuCards::save_settings($import_data['settings']);
         }
         
-        if ($result1 && $result2) {
-            $this->clear_cache();
-            
+        if ($cards_saved && $settings_saved) {
             wp_send_json_success(array(
                 'message' => 'Veriler başarıyla içe aktarıldı!',
-                'group_count' => count($data['groups'])
+                'imported_groups' => count($import_data['cards']),
+                'version' => $import_data['version'] ?? 'unknown'
             ));
         } else {
-            wp_send_json_error('İçe aktarma sırasında hata oluştu.');
+            wp_send_json_error('Veriler kaydedilemedi!');
         }
     }
     
     /**
-     * Preview card via AJAX
-     * @return void
+     * Kart verilerini sanitize et
      */
-    public function preview_card(): void {
-        if (!$this->verify_nonce()) {
-            wp_send_json_error('Yetkisiz erişim.');
+    private function sanitize_card_data($data) {
+        if (!is_array($data)) {
+            return array();
         }
         
-        $card_data = $_POST['card_data'] ?? array();
-        $preview_type = sanitize_text_field($_POST['preview_type'] ?? 'grid');
-        
-        $sanitized_card = $this->sanitize_card_data($card_data);
-        
-        // Önizleme HTML'i oluştur
-        if ($preview_type === 'banner') {
-            $html = $this->generate_banner_preview($sanitized_card);
-        } else {
-            $html = $this->generate_card_preview($sanitized_card);
-        }
-        
-        wp_send_json_success(array(
-            'html' => $html
-        ));
-    }
-    
-    /**
-     * Track card click via AJAX
-     * @return void
-     */
-    public function track_card_click(): void {
-        $group_id = intval($_POST['group_id'] ?? 0);
-        $card_index = intval($_POST['card_index'] ?? 0);
-        
-        if ($group_id < 0 || $card_index < 0) {
-            wp_send_json_error('Geçersiz parametreler.');
-        }
-        
-        // Analytics kontrolü
-        $settings = get_option('esistenze_quick_menu_settings', EsistenzeQuickMenuCards::get_default_settings());
-        if (empty($settings['enable_analytics'])) {
-            wp_send_json_success('Analytics devre dışı.');
-        }
-        
-        // Analytics verilerini güncelle
-        $analytics = get_option('esistenze_quick_menu_analytics', array());
-        $analytics['total_clicks'] = ($analytics['total_clicks'] ?? 0) + 1;
-        $analytics['group_clicks'][$group_id] = ($analytics['group_clicks'][$group_id] ?? 0) + 1;
-        $analytics['card_clicks'][$group_id][$card_index] = ($analytics['card_clicks'][$group_id][$card_index] ?? 0) + 1;
-        $analytics['last_click'] = current_time('mysql');
-        
-        // IP ve User Agent bilgilerini kaydet (GDPR uyumlu)
-        if (!empty($settings['track_user_data'])) {
-            $analytics['click_details'][] = array(
-                'group_id' => $group_id,
-                'card_index' => $card_index,
-                'timestamp' => current_time('mysql'),
-                'ip' => $this->get_client_ip(),
-                'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255)
-            );
-            
-            // Son 1000 detayı tut
-            if (count($analytics['click_details']) > 1000) {
-                $analytics['click_details'] = array_slice($analytics['click_details'], -1000);
-            }
-        }
-        
-        update_option('esistenze_quick_menu_analytics', $analytics);
-        
-        wp_send_json_success('Tıklama kaydedildi.');
-    }
-    
-    /**
-     * Track card view via AJAX
-     * @return void
-     */
-    public function track_card_view(): void {
-        $group_id = intval($_POST['group_id'] ?? 0);
-        
-        if ($group_id < 0) {
-            wp_send_json_error('Geçersiz grup ID.');
-        }
-        
-        // Analytics kontrolü
-        $settings = get_option('esistenze_quick_menu_settings', EsistenzeQuickMenuCards::get_default_settings());
-        if (empty($settings['enable_analytics'])) {
-            wp_send_json_success('Analytics devre dışı.');
-        }
-        
-        // Rate limiting - aynı IP'den 1 dakikada sadece 1 view
-        $rate_limit_key = 'view_' . $group_id . '_' . $this->get_client_ip();
-        if (get_transient($rate_limit_key)) {
-            wp_send_json_success('Rate limited.');
-        }
-        set_transient($rate_limit_key, true, 60); // 1 dakika
-        
-        // Analytics verilerini güncelle
-        $analytics = get_option('esistenze_quick_menu_analytics', array());
-        $analytics['total_views'] = ($analytics['total_views'] ?? 0) + 1;
-        $analytics['group_views'][$group_id] = ($analytics['group_views'][$group_id] ?? 0) + 1;
-        $analytics['last_view'] = current_time('mysql');
-        
-        update_option('esistenze_quick_menu_analytics', $analytics);
-        
-        wp_send_json_success('Görüntülenme kaydedildi.');
-    }
-    
-    // Helper methods
-    private function verify_nonce() {
-        return wp_verify_nonce($_POST['nonce'] ?? '', 'esistenze_quick_menu_nonce');
-    }
-    
-    private function get_capability() {
-        return function_exists('esistenze_qmc_capability') ? esistenze_qmc_capability() : 'edit_posts';
-    }
-    
-    private function sanitize_card_data($card_data) {
         return array(
-            'title' => sanitize_text_field($card_data['title'] ?? ''),
-            'desc' => sanitize_textarea_field($card_data['desc'] ?? ''),
-            'img' => esc_url_raw($card_data['img'] ?? ''),
-            'url' => esc_url_raw($card_data['url'] ?? ''),
-            'order' => intval($card_data['order'] ?? 0),
-            'enabled' => !empty($card_data['enabled']),
-            'created_at' => $card_data['created_at'] ?? current_time('mysql'),
-            'updated_at' => current_time('mysql')
+            'title' => sanitize_text_field($data['title'] ?? ''),
+            'description' => sanitize_textarea_field($data['description'] ?? ''),
+            'url' => esc_url_raw($data['url'] ?? ''),
+            'image' => esc_url_raw($data['image'] ?? ''),
+            'image_id' => intval($data['image_id'] ?? 0),
+            'button_text' => sanitize_text_field($data['button_text'] ?? ''),
+            'type' => 'card',
+            'created' => current_time('mysql'),
+            'updated' => current_time('mysql')
         );
     }
     
-    private function validate_card_data($card_data) {
-        $errors = array();
-        
-        if (empty($card_data['title'])) {
-            $errors[] = 'Kart başlığı zorunludur.';
+    /**
+     * Hata logla
+     */
+    private function log_error($message, $data = array()) {
+        if (function_exists('qmc_log_error')) {
+            qmc_log_error('QMC AJAX Error: ' . $message, $data);
         }
-        
-        if (strlen($card_data['title']) > 100) {
-            $errors[] = 'Kart başlığı 100 karakterden uzun olamaz.';
-        }
-        
-        if (strlen($card_data['desc']) > 500) {
-            $errors[] = 'Kart açıklaması 500 karakterden uzun olamaz.';
-        }
-        
-        if (!empty($card_data['url']) && !filter_var($card_data['url'], FILTER_VALIDATE_URL)) {
-            $errors[] = 'Geçerli bir URL giriniz.';
-        }
-        
-        if (!empty($card_data['img']) && !filter_var($card_data['img'], FILTER_VALIDATE_URL)) {
-            $errors[] = 'Geçerli bir görsel URL\'i giriniz.';
-        }
-        
-        return empty($errors) ? true : $errors;
-    }
-    
-    private function cleanup_group_analytics($group_id) {
-        $analytics = get_option('esistenze_quick_menu_analytics', array());
-        
-        // Grup ile ilgili analytics verilerini temizle
-        if (isset($analytics['group_views'][$group_id])) {
-            unset($analytics['group_views'][$group_id]);
-        }
-        
-        if (isset($analytics['group_clicks'][$group_id])) {
-            unset($analytics['group_clicks'][$group_id]);
-        }
-        
-        if (isset($analytics['card_clicks'][$group_id])) {
-            unset($analytics['card_clicks'][$group_id]);
-        }
-        
-        update_option('esistenze_quick_menu_analytics', $analytics);
-    }
-    
-    private function clear_cache() {
-        // WordPress object cache
-        wp_cache_delete('esistenze_quick_menu_cards', 'esistenze');
-        wp_cache_delete('esistenze_quick_menu_settings', 'esistenze');
-        
-        // Transients
-        delete_transient('esistenze_quick_menu_cards_cache');
-        delete_transient('esistenze_quick_menu_schema_cache');
-        
-        // Page cache plugins
-        if (function_exists('wp_cache_clear_cache')) {
-            wp_cache_clear_cache();
-        }
-        
-        if (function_exists('w3tc_flush_all')) {
-            w3tc_flush_all();
-        }
-        
-        if (function_exists('wp_rocket_clean_domain')) {
-            wp_rocket_clean_domain();
-        }
-    }
-    
-    private function generate_card_preview($card) {
-        $settings = get_option('esistenze_quick_menu_settings', EsistenzeQuickMenuCards::get_default_settings());
-        
-        $html = '<div class="esistenze-quick-menu-wrapper preview-wrapper">';
-        $html .= '<div class="esistenze-quick-menu-kart">';
-        $html .= '<div class="esistenze-quick-menu-icerik">';
-        
-        if (!empty($card['img'])) {
-            $html .= '<img src="' . esc_url($card['img']) . '" alt="' . esc_attr($card['title']) . '">';
-        }
-        
-        $html .= '<div class="esistenze-quick-menu-yazi">';
-        $html .= '<h4>' . esc_html($card['title'] ?: 'Başlık') . '</h4>';
-        $html .= '<p>' . esc_html($card['desc'] ?: 'Açıklama') . '</p>';
-        $html .= '</div></div>';
-        $html .= '<div class="esistenze-quick-menu-buton">' . esc_html($settings['default_button_text']) . '</div>';
-        $html .= '</div></div>';
-        
-        return $html;
-    }
-    
-    private function generate_banner_preview($card) {
-        $settings = get_option('esistenze_quick_menu_settings', EsistenzeQuickMenuCards::get_default_settings());
-        
-        if (empty($card['img'])) {
-            return '<p>Banner görünüm için görsel gereklidir.</p>';
-        }
-        
-        $html = '<div class="esistenze-quick-menu-banner-wrapper preview-wrapper">';
-        $html .= '<div class="esistenze-quick-menu-banner">';
-        $html .= '<div class="banner-img"><img src="' . esc_url($card['img']) . '" alt="' . esc_attr($card['title']) . '"></div>';
-        $html .= '<div class="banner-text">';
-        $html .= '<h4>' . esc_html($card['title'] ?: 'Başlık') . '</h4>';
-        $html .= '<p>' . esc_html($card['desc'] ?: 'Açıklama') . '</p>';
-        $html .= '</div>';
-        $html .= '<div class="banner-button"><span>' . esc_html($settings['banner_button_text']) . '</span></div>';
-        $html .= '</div></div>';
-        
-        return $html;
-    }
-    
-    private function get_client_ip() {
-        $ip_keys = array('HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR');
-        
-        foreach ($ip_keys as $key) {
-            if (array_key_exists($key, $_SERVER) === true) {
-                foreach (explode(',', $_SERVER[$key]) as $ip) {
-                    $ip = trim($ip);
-                    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false) {
-                        return $ip;
-                    }
-                }
-            }
-        }
-        
-        return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-    }
-    
-    private function get_version() {
-        return defined('ESISTENZE_WP_KIT_VERSION') ? ESISTENZE_WP_KIT_VERSION : '1.0.0';
     }
 }
-
 ?>

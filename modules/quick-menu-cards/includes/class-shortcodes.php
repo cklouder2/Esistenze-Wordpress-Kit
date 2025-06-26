@@ -1,7 +1,11 @@
 <?php
-/*
- * Quick Menu Cards - Frontend Shortcode Handlers
- * includes/class-shortcodes.php
+/**
+ * Quick Menu Cards Shortcodes Sınıfı
+ * Yeniden yazılmış, basit ve çalışır versiyon
+ * 
+ * @package Esistenze WordPress Kit
+ * @subpackage Quick Menu Cards
+ * @version 2.0.0
  */
 
 if (!defined('ABSPATH')) {
@@ -11,545 +15,397 @@ if (!defined('ABSPATH')) {
 class EsistenzeQuickMenuCardsShortcodes {
     
     private $frontend;
-    private $cache_enabled;
-    private $settings;
     
-    /**
-     * Constructor
-     * @param EsistenzeQuickMenuCardsFrontend $frontend
-     */
-    public function __construct(EsistenzeQuickMenuCardsFrontend $frontend) {
-        $this->frontend = $frontend;
-        $this->settings = get_option('esistenze_quick_menu_settings', EsistenzeQuickMenuCards::get_default_settings());
-        $this->cache_enabled = !empty($this->settings['cache_duration']);
-        $this->init_hooks();
+    public function __construct() {
+        $this->init();
     }
     
-    private function init_hooks() {
-        // Modern shortcodes
+    /**
+     * Shortcode'ları başlat
+     */
+    private function init() {
+        // Ana shortcode'ları kaydet
         add_shortcode('quick_menu_cards', array($this, 'render_cards_shortcode'));
-        add_shortcode('quick_menu_banner', array($this, 'render_banner_shortcode'));
+        add_shortcode('qmc_cards', array($this, 'render_cards_shortcode')); // Kısa versiyon
+        add_shortcode('qmc_banner', array($this, 'render_banner_shortcode'));
+        add_shortcode('qmc_list', array($this, 'render_list_shortcode'));
+        add_shortcode('qmc_masonry', array($this, 'render_masonry_shortcode'));
+        add_shortcode('qmc_slider', array($this, 'render_slider_shortcode'));
         
-        // Legacy shortcodes (geriye uyumluluk)
-        add_shortcode('hizli_menu', array($this, 'render_cards_shortcode'));
-        add_shortcode('hizli_menu_banner', array($this, 'render_banner_shortcode'));
+        // Eski uyumluluk için
+        add_shortcode('esistenze_quick_menu', array($this, 'render_cards_shortcode'));
         
-        // Preview shortcode (admin önizleme için)
-        add_action('init', array($this, 'handle_preview_mode'));
+        // Frontend sınıfını başlat
+        $this->frontend = new EsistenzeQuickMenuCardsFrontend(plugin_dir_url(__DIR__));
         
-        // Shortcode ile ilgili AJAX işlemler
-        add_action('wp_ajax_get_shortcode_preview', array($this, 'ajax_get_shortcode_preview'));
-        add_action('wp_ajax_nopriv_get_shortcode_preview', array($this, 'ajax_get_shortcode_preview'));
+        // Debug log
+        if (function_exists('qmc_log_error')) {
+            qmc_log_error('QMC Shortcodes sınıfı başlatıldı');
+        }
     }
     
     /**
-     * Render cards shortcode
-     * @param array $atts
-     * @param string|null $content
-     * @return string
+     * Ana kart shortcode'u
+     * [quick_menu_cards group="ana-menu" columns="3" show_images="true" show_descriptions="true"]
      */
-    public function render_cards_shortcode(array $atts, $content = null): string {
-        $atts = shortcode_atts(array(
-            'id' => 0,
-            'limit' => 0,
-            'columns' => 0, // 0 = varsayılan
-            'order' => 'asc',
-            'show_button' => 'yes',
-            'button_text' => '',
-            'class' => '',
-            'style' => '', // grid, list, masonry
-            'animation' => '', // fade, slide, bounce
-            'responsive' => 'yes'
-        ), $atts, 'quick_menu_cards');
-        
-        return $this->frontend->render_cards_grid($atts);
-    }
-    
-    /**
-     * Render banner shortcode
-     * @param array $atts
-     * @param string|null $content
-     * @return string
-     */
-    public function render_banner_shortcode(array $atts, $content = null): string {
-        $atts = shortcode_atts(array(
-            'id' => 0,
-            'limit' => 0,
-            'columns' => 2,
-            'order' => 'asc',
-            'show_button' => 'yes',
-            'button_text' => '',
-            'class' => '',
-            'height' => '', // auto, small, medium, large
-            'animation' => '',
-            'responsive' => 'yes'
-        ), $atts, 'quick_menu_banner');
-        
-        return $this->frontend->render_banner_layout($atts);
-    }
-    
-    /**
-     * Advanced cards shortcode with more options
-     * @param array $atts
-     * @param string|null $content
-     * @return string
-     */
-    public function render_advanced_cards(array $atts, $content = null): string {
-        $atts = shortcode_atts(array(
-            'id' => 0,
-            'limit' => 0,
-            'columns' => 4,
-            'order' => 'asc',
-            'filter' => '', // featured, category, tag
-            'exclude' => '', // Card IDs to exclude
-            'include' => '', // Only include these card IDs
-            'show_button' => 'yes',
-            'button_text' => '',
-            'show_description' => 'yes',
-            'truncate_description' => 0,
-            'image_size' => 'medium',
-            'hover_effect' => 'scale',
-            'loading' => 'lazy',
-            'schema' => 'yes',
-            'class' => '',
-            'css_animation' => '',
-            'animation_delay' => 0
-        ), $atts, 'quick_menu_advanced');
-        
-        // Advanced rendering logic burada olacak
-        return $this->render_advanced_layout($atts);
-    }
-    
-    /**
-     * Handle preview mode
-     * @return void
-     */
-    public function handle_preview_mode(): void {
-        if (!isset($_GET['quick_menu_preview']) || !is_admin() || !current_user_can('read')) {
-            return;
-        }
-        
-        $group_id = intval($_GET['quick_menu_preview']);
-        $type = sanitize_text_field($_GET['type'] ?? 'grid');
-        
-        // Preview sayfası template'i
-        add_action('template_redirect', function() use ($group_id, $type) {
-            $this->render_preview_page($group_id, $type);
-            exit;
-        });
-    }
-    
-    /**
-     * Render preview page
-     */
-    private function render_preview_page($group_id, $type) {
-        $kartlar = get_option('esistenze_quick_menu_kartlari', array());
-        $group = $kartlar[$group_id] ?? array();
-        
-        if (empty($group)) {
-            wp_die('Grup bulunamadı.');
-        }
-        
-        ?>
-        <!DOCTYPE html>
-        <html <?php language_attributes(); ?>>
-        <head>
-            <meta charset="<?php bloginfo('charset'); ?>">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>Quick Menu Preview - Grup #<?php echo $group_id; ?></title>
-            <?php wp_head(); ?>
-            <style>
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    margin: 0;
-                    padding: 20px;
-                    background: #f0f0f0;
-                }
-                .preview-container {
-                    max-width: 1200px;
-                    margin: 0 auto;
-                    background: white;
-                    padding: 40px;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                }
-                .preview-header {
-                    text-align: center;
-                    margin-bottom: 40px;
-                    padding-bottom: 20px;
-                    border-bottom: 1px solid #eee;
-                }
-                .preview-types {
-                    display: flex;
-                    justify-content: center;
-                    gap: 10px;
-                    margin: 20px 0;
-                }
-                .preview-type {
-                    padding: 10px 20px;
-                    border: 1px solid #ddd;
-                    background: white;
-                    border-radius: 4px;
-                    text-decoration: none;
-                    color: #333;
-                }
-                .preview-type.active {
-                    background: #0073aa;
-                    color: white;
-                    border-color: #0073aa;
-                }
-                .admin-bar-spacer {
-                    height: 32px;
-                }
-            </style>
-        </head>
-        <body <?php body_class(); ?>>
-            <?php if (is_admin_bar_showing()): ?>
-                <div class="admin-bar-spacer"></div>
-            <?php endif; ?>
-            
-            <div class="preview-container">
-                <div class="preview-header">
-                    <h1>Quick Menu Cards - Grup #<?php echo $group_id; ?> Önizlemesi</h1>
-                    <p><?php echo count($group); ?> kart bulunuyor</p>
-                    
-                    <div class="preview-types">
-                        <a href="?quick_menu_preview=<?php echo $group_id; ?>&type=grid" 
-                           class="preview-type <?php echo $type === 'grid' ? 'active' : ''; ?>">
-                            Izgara Görünüm
-                        </a>
-                        <a href="?quick_menu_preview=<?php echo $group_id; ?>&type=banner" 
-                           class="preview-type <?php echo $type === 'banner' ? 'active' : ''; ?>">
-                            Banner Görünüm
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="preview-content">
-                    <?php
-                    if ($type === 'banner') {
-                        echo do_shortcode('[quick_menu_banner id="' . $group_id . '"]');
-                    } else {
-                        echo do_shortcode('[quick_menu_cards id="' . $group_id . '"]');
-                    }
-                    ?>
-                </div>
-                
-                <div style="margin-top: 40px; text-align: center; color: #666; font-size: 14px;">
-                    <p>Bu bir önizlemedir. Gerçek sitede görünüm farklı olabilir.</p>
-                </div>
-            </div>
-            
-            <?php wp_footer(); ?>
-        </body>
-        </html>
-        <?php
-    }
-    
-    /**
-     * AJAX: Get shortcode preview
-     * @return void
-     */
-    public function ajax_get_shortcode_preview(): void {
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'esistenze_quick_menu_nonce')) {
-            wp_send_json_error('Nonce doğrulaması başarısız.');
-        }
-        
-        $shortcode = sanitize_text_field($_POST['shortcode'] ?? '');
-        
-        if (empty($shortcode)) {
-            wp_send_json_error('Shortcode boş.');
-        }
-        
-        // Shortcode'u çalıştır
-        $output = do_shortcode($shortcode);
-        
-        if (empty($output)) {
-            wp_send_json_error('Shortcode çıktı üretmedi.');
-        }
-        
-        wp_send_json_success(array(
-            'html' => $output,
-            'shortcode' => $shortcode
-        ));
-    }
-    
-    /**
-     * Advanced layout rendering
-     */
-    private function render_advanced_layout($atts) {
-        $group_id = intval($atts['id']);
-        $kartlar = get_option('esistenze_quick_menu_kartlari', array());
-        $group = $kartlar[$group_id] ?? array();
-        
-        if (empty($group)) {
-            return '<p class="quick-menu-empty">Bu grupta kart bulunmuyor.</p>';
-        }
-        
-        // Filter cards based on advanced options
-        $filtered_cards = $this->filter_cards($group, $atts);
-        
-        // Generate unique wrapper class
-        $wrapper_class = 'esistenze-quick-menu-advanced-wrapper';
-        $wrapper_class .= !empty($atts['class']) ? ' ' . esc_attr($atts['class']) : '';
-        
-        // Build HTML
-        $output = '<div class="' . $wrapper_class . '" data-group-id="' . $group_id . '">';
-        
-        // Add CSS animations
-        if (!empty($atts['css_animation'])) {
-            $output .= '<style>';
-            $output .= $this->generate_animation_css($atts['css_animation'], $atts['animation_delay']);
-            $output .= '</style>';
-        }
-        
-        foreach ($filtered_cards as $index => $card) {
-            $output .= $this->render_advanced_card($card, $index, $atts, $group_id);
-        }
-        
-        $output .= '</div>';
-        
-        // Add schema markup if enabled
-        if ($atts['schema'] === 'yes') {
-            $output .= $this->generate_card_schema($filtered_cards, $group_id);
-        }
-        
-        return $output;
-    }
-    
-    /**
-     * Filter cards based on criteria
-     */
-    private function filter_cards($cards, $atts) {
-        $filtered = $cards;
-        
-        // Include/Exclude logic
-        if (!empty($atts['include'])) {
-            $include_ids = array_map('intval', explode(',', $atts['include']));
-            $filtered = array_filter($filtered, function($card, $index) use ($include_ids) {
-                return in_array($index, $include_ids);
-            }, ARRAY_FILTER_USE_BOTH);
-        }
-        
-        if (!empty($atts['exclude'])) {
-            $exclude_ids = array_map('intval', explode(',', $atts['exclude']));
-            $filtered = array_filter($filtered, function($card, $index) use ($exclude_ids) {
-                return !in_array($index, $exclude_ids);
-            }, ARRAY_FILTER_USE_BOTH);
-        }
-        
-        // Filter by featured
-        if ($atts['filter'] === 'featured') {
-            $filtered = array_filter($filtered, function($card) {
-                return !empty($card['featured']);
-            });
-        }
-        
-        // Sort cards
-        if ($atts['order'] === 'desc') {
-            $filtered = array_reverse($filtered, true);
-        } elseif ($atts['order'] === 'random') {
-            shuffle($filtered);
-        } elseif ($atts['order'] === 'title') {
-            uasort($filtered, function($a, $b) {
-                return strcasecmp($a['title'] ?? '', $b['title'] ?? '');
-            });
-        }
-        
-        // Apply limit
-        if ($atts['limit'] > 0) {
-            $filtered = array_slice($filtered, 0, intval($atts['limit']), true);
-        }
-        
-        return $filtered;
-    }
-    
-    /**
-     * Render single advanced card
-     */
-    private function render_advanced_card($card, $index, $atts, $group_id) {
-        $has_url = !empty($card['url']);
-        $card_class = 'esistenze-quick-menu-advanced-card';
-        
-        // Add hover effect class
-        if (!empty($atts['hover_effect'])) {
-            $card_class .= ' hover-effect-' . esc_attr($atts['hover_effect']);
-        }
-        
-        // Animation delay
-        $animation_delay = 0;
-        if (!empty($atts['css_animation']) && $atts['animation_delay'] > 0) {
-            $animation_delay = $index * intval($atts['animation_delay']);
-        }
-        
-        $onclick = $has_url ? 'onclick="trackCardClick(' . $group_id . ', ' . $index . ')"' : '';
-        $aria_label = 'aria-label="' . esc_attr($card['title'] ?? 'Kart') . ($has_url ? ' - Tıklayarak detayları görün' : '') . '"';
-        
-        $link_start = $has_url ? 
-            '<a href="' . esc_url($card['url']) . '" class="' . $card_class . '" target="' . (!empty($card['new_tab']) ? '_blank' : '_self') . '" ' . $onclick . ' ' . $aria_label . ' style="animation-delay: ' . $animation_delay . 'ms;">' : 
-            '<div class="' . $card_class . '" ' . $aria_label . ' style="animation-delay: ' . $animation_delay . 'ms;">';
-        $link_end = $has_url ? '</a>' : '</div>';
-        
-        $output = $link_start;
-        
-        // Image
-        if (!empty($card['img']) && $atts['show_image'] !== 'no') {
-            $img_size = $atts['image_size'] ?? 'medium';
-            $loading = $atts['loading'] === 'lazy' ? 'loading="lazy"' : '';
-            $alt_text = !empty($card['title']) ? $card['title'] : 'Kart görseli';
-            
-            $output .= '<div class="card-image-wrapper">';
-            $output .= '<img src="' . esc_url($card['img']) . '" alt="' . esc_attr($alt_text) . '" ' . $loading . ' decoding="async">';
-            $output .= '</div>';
-        }
-        
-        // Content
-        $output .= '<div class="card-content-wrapper">';
-        $output .= '<h4 class="card-title">' . esc_html($card['title'] ?? 'Başlıksız') . '</h4>';
-        
-        if (!empty($card['desc']) && $atts['show_description'] === 'yes') {
-            $description = $card['desc'];
-            if ($atts['truncate_description'] > 0) {
-                $description = wp_trim_words($description, intval($atts['truncate_description']));
-            }
-            $output .= '<p class="card-description">' . esc_html($description) . '</p>';
-        }
-        $output .= '</div>';
-        
-        // Button
-        if ($atts['show_button'] === 'yes') {
-            $button_text = !empty($atts['button_text']) ? $atts['button_text'] : ($this->settings['default_button_text'] ?? 'Detayları Gör');
-            $output .= '<div class="card-button-wrapper">';
-            $output .= '<span class="card-button">' . esc_html($button_text) . '</span>';
-            $output .= '</div>';
-        }
-        
-        $output .= $link_end;
-        
-        return $output;
-    }
-    
-    /**
-     * Generate animation CSS
-     */
-    private function generate_animation_css($animation, $delay) {
-        $css = '';
-        
-        switch ($animation) {
-            case 'fadeIn':
-                $css .= '.esistenze-quick-menu-advanced-card { opacity: 0; animation: fadeIn 0.6s ease forwards; }';
-                $css .= '@keyframes fadeIn { to { opacity: 1; } }';
-                break;
-                
-            case 'slideUp':
-                $css .= '.esistenze-quick-menu-advanced-card { opacity: 0; transform: translateY(30px); animation: slideUp 0.6s ease forwards; }';
-                $css .= '@keyframes slideUp { to { opacity: 1; transform: translateY(0); } }';
-                break;
-                
-            case 'slideLeft':
-                $css .= '.esistenze-quick-menu-advanced-card { opacity: 0; transform: translateX(-30px); animation: slideLeft 0.6s ease forwards; }';
-                $css .= '@keyframes slideLeft { to { opacity: 1; transform: translateX(0); } }';
-                break;
-                
-            case 'scale':
-                $css .= '.esistenze-quick-menu-advanced-card { opacity: 0; transform: scale(0.8); animation: scaleIn 0.6s ease forwards; }';
-                $css .= '@keyframes scaleIn { to { opacity: 1; transform: scale(1); } }';
-                break;
-                
-            case 'bounce':
-                $css .= '.esistenze-quick-menu-advanced-card { opacity: 0; transform: translateY(-20px); animation: bounceIn 0.8s ease forwards; }';
-                $css .= '@keyframes bounceIn { 0% { opacity: 0; transform: translateY(-20px); } 60% { opacity: 1; transform: translateY(5px); } 100% { transform: translateY(0); } }';
-                break;
-        }
-        
-        return $css;
-    }
-    
-    /**
-     * Generate schema markup for cards
-     */
-    private function generate_card_schema($cards, $group_id) {
-        $schema = array(
-            '@context' => 'https://schema.org',
-            '@type' => 'ItemList',
-            'name' => 'Quick Menu Cards - Grup ' . $group_id,
-            'numberOfItems' => count($cards),
-            'itemListElement' => array()
+    public function render_cards_shortcode($atts, $content = null) {
+        // Varsayılan özellikler
+        $defaults = array(
+            'group' => '', // Grup ID (zorunlu)
+            'id' => '', // Eski uyumluluk için
+            'columns' => 0, // 0 = ayarlardan al
+            'show_images' => '', // true/false/'' = ayarlardan al
+            'show_descriptions' => '', // true/false/'' = ayarlardan al
+            'limit' => 0, // Gösterilecek kart sayısı (0 = tümü)
+            'class' => '', // Özel CSS sınıfı
+            'style' => 'grid' // grid, list, masonry, slider
         );
         
-        $position = 1;
-        foreach ($cards as $card) {
-            if (empty($card['title'])) continue;
-            
-            $item = array(
-                '@type' => 'ListItem',
-                'position' => $position++,
-                'name' => $card['title']
-            );
-            
-            if (!empty($card['desc'])) {
-                $item['description'] = $card['desc'];
-            }
-            
-            if (!empty($card['url'])) {
-                $item['url'] = $card['url'];
-            }
-            
-            if (!empty($card['img'])) {
-                $item['image'] = $card['img'];
-            }
-            
-            $schema['itemListElement'][] = $item;
+        $atts = shortcode_atts($defaults, $atts, 'quick_menu_cards');
+        
+        // Eski uyumluluk - id parametresi varsa group olarak kullan
+        if (empty($atts['group']) && !empty($atts['id'])) {
+            $atts['group'] = $atts['id'];
         }
         
-        return '<script type="application/ld+json">' . 
-               wp_json_encode($schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . 
-               '</script>';
+        // Grup ID kontrolü
+        if (empty($atts['group'])) {
+            return '<div class="qmc-error">Hata: Grup ID belirtilmedi. Kullanım: [quick_menu_cards group="grup-id"]</div>';
+        }
+        
+        // Boolean değerleri dönüştür
+        $show_images = $this->parse_boolean($atts['show_images']);
+        $show_descriptions = $this->parse_boolean($atts['show_descriptions']);
+        
+        // Render parametrelerini hazırla
+        $render_atts = array(
+            'columns' => intval($atts['columns']),
+            'show_images' => $show_images,
+            'show_descriptions' => $show_descriptions,
+            'limit' => intval($atts['limit']),
+            'custom_class' => sanitize_html_class($atts['class'])
+        );
+        
+        // Stil türüne göre render et
+        switch ($atts['style']) {
+            case 'list':
+                return $this->frontend->render_list_view($atts['group'], $render_atts);
+            case 'masonry':
+                return $this->frontend->render_masonry_view($atts['group'], $render_atts);
+            case 'slider':
+                return $this->frontend->render_slider_view($atts['group'], $render_atts);
+            case 'grid':
+            default:
+                return $this->frontend->render_cards($atts['group'], $render_atts);
+        }
     }
     
     /**
-     * Get shortcode documentation
-     * @return array
+     * Banner shortcode'u
+     * [qmc_banner group="banner-grup" card="0"]
      */
-    public static function get_shortcode_documentation(): array {
+    public function render_banner_shortcode($atts, $content = null) {
+        $defaults = array(
+            'group' => '',
+            'card' => 0, // Hangi kart (index)
+            'class' => 'qmc-banner',
+            'full_width' => 'true'
+        );
+        
+        $atts = shortcode_atts($defaults, $atts, 'qmc_banner');
+        
+        if (empty($atts['group'])) {
+            return '<div class="qmc-error">Hata: Banner grup ID belirtilmedi.</div>';
+        }
+        
+        // Grup verilerini al
+        $group_data = EsistenzeQuickMenuCards::get_cards($atts['group']);
+        
+        if (!$group_data || empty($group_data['cards'])) {
+            return '<div class="qmc-error">Banner grup bulunamadı veya boş.</div>';
+        }
+        
+        $card_index = intval($atts['card']);
+        
+        if (!isset($group_data['cards'][$card_index])) {
+            return '<div class="qmc-error">Belirtilen banner kart bulunamadı.</div>';
+        }
+        
+        $card_data = $group_data['cards'][$card_index];
+        
+        $render_atts = array(
+            'full_width' => $this->parse_boolean($atts['full_width']),
+            'custom_class' => sanitize_html_class($atts['class'])
+        );
+        
+        return $this->frontend->render_banner_card($card_data, $render_atts);
+    }
+    
+    /**
+     * Liste shortcode'u
+     * [qmc_list group="liste-grup" show_images="true" limit="5"]
+     */
+    public function render_list_shortcode($atts, $content = null) {
+        $defaults = array(
+            'group' => '',
+            'show_images' => 'true',
+            'show_descriptions' => 'true',
+            'limit' => 0,
+            'class' => 'qmc-list'
+        );
+        
+        $atts = shortcode_atts($defaults, $atts, 'qmc_list');
+        
+        if (empty($atts['group'])) {
+            return '<div class="qmc-error">Hata: Liste grup ID belirtilmedi.</div>';
+        }
+        
+        $render_atts = array(
+            'show_images' => $this->parse_boolean($atts['show_images']),
+            'show_descriptions' => $this->parse_boolean($atts['show_descriptions']),
+            'limit' => intval($atts['limit']),
+            'custom_class' => sanitize_html_class($atts['class'])
+        );
+        
+        return $this->frontend->render_list_view($atts['group'], $render_atts);
+    }
+    
+    /**
+     * Masonry shortcode'u
+     * [qmc_masonry group="masonry-grup" columns="4"]
+     */
+    public function render_masonry_shortcode($atts, $content = null) {
+        $defaults = array(
+            'group' => '',
+            'columns' => 3,
+            'show_images' => 'true',
+            'show_descriptions' => 'true',
+            'class' => 'qmc-masonry'
+        );
+        
+        $atts = shortcode_atts($defaults, $atts, 'qmc_masonry');
+        
+        if (empty($atts['group'])) {
+            return '<div class="qmc-error">Hata: Masonry grup ID belirtilmedi.</div>';
+        }
+        
+        $render_atts = array(
+            'columns' => intval($atts['columns']),
+            'show_images' => $this->parse_boolean($atts['show_images']),
+            'show_descriptions' => $this->parse_boolean($atts['show_descriptions']),
+            'custom_class' => sanitize_html_class($atts['class'])
+        );
+        
+        return $this->frontend->render_masonry_view($atts['group'], $render_atts);
+    }
+    
+    /**
+     * Slider shortcode'u
+     * [qmc_slider group="slider-grup" slides_to_show="3" auto_play="true"]
+     */
+    public function render_slider_shortcode($atts, $content = null) {
+        $defaults = array(
+            'group' => '',
+            'slides_to_show' => 3,
+            'auto_play' => 'false',
+            'show_arrows' => 'true',
+            'show_dots' => 'true',
+            'class' => 'qmc-slider'
+        );
+        
+        $atts = shortcode_atts($defaults, $atts, 'qmc_slider');
+        
+        if (empty($atts['group'])) {
+            return '<div class="qmc-error">Hata: Slider grup ID belirtilmedi.</div>';
+        }
+        
+        $render_atts = array(
+            'slides_to_show' => intval($atts['slides_to_show']),
+            'auto_play' => $this->parse_boolean($atts['auto_play']),
+            'show_arrows' => $this->parse_boolean($atts['show_arrows']),
+            'show_dots' => $this->parse_boolean($atts['show_dots']),
+            'custom_class' => sanitize_html_class($atts['class'])
+        );
+        
+        return $this->frontend->render_slider_view($atts['group'], $render_atts);
+    }
+    
+    /**
+     * Tek kart shortcode'u
+     * [qmc_single_card group="grup" card="0"]
+     */
+    public function render_single_card_shortcode($atts, $content = null) {
+        $defaults = array(
+            'group' => '',
+            'card' => 0,
+            'show_image' => 'true',
+            'show_description' => 'true',
+            'class' => 'qmc-single'
+        );
+        
+        $atts = shortcode_atts($defaults, $atts, 'qmc_single_card');
+        
+        if (empty($atts['group'])) {
+            return '<div class="qmc-error">Hata: Grup ID belirtilmedi.</div>';
+        }
+        
+        // Grup verilerini al
+        $group_data = EsistenzeQuickMenuCards::get_cards($atts['group']);
+        
+        if (!$group_data || empty($group_data['cards'])) {
+            return '<div class="qmc-error">Grup bulunamadı veya boş.</div>';
+        }
+        
+        $card_index = intval($atts['card']);
+        
+        if (!isset($group_data['cards'][$card_index])) {
+            return '<div class="qmc-error">Belirtilen kart bulunamadı.</div>';
+        }
+        
+        $card = $group_data['cards'][$card_index];
+        $settings = EsistenzeQuickMenuCards::get_settings();
+        
+        $show_image = $this->parse_boolean($atts['show_image']);
+        $show_description = $this->parse_boolean($atts['show_description']);
+        
+        $output = '<div class="qmc-single-card ' . esc_attr($atts['class']) . '">';
+        
+        // Resim
+        if ($show_image && !empty($card['image'])) {
+            $output .= '<div class="qmc-card-image">';
+            $output .= '<img src="' . esc_url($card['image']) . '" alt="' . esc_attr($card['title']) . '" loading="lazy">';
+            $output .= '</div>';
+        }
+        
+        // İçerik
+        $output .= '<div class="qmc-card-content">';
+        
+        if (!empty($card['title'])) {
+            $output .= '<h3 class="qmc-card-title">' . esc_html($card['title']) . '</h3>';
+        }
+        
+        if ($show_description && !empty($card['description'])) {
+            $output .= '<p class="qmc-card-description">' . esc_html($card['description']) . '</p>';
+        }
+        
+        if (!empty($card['url'])) {
+            $button_text = !empty($card['button_text']) ? $card['button_text'] : $settings['default_button_text'];
+            $output .= '<a href="' . esc_url($card['url']) . '" class="qmc-card-button">';
+            $output .= esc_html($button_text);
+            $output .= '</a>';
+        }
+        
+        $output .= '</div>';
+        $output .= '</div>';
+        
+        return $output;
+    }
+    
+    /**
+     * Grup bilgisi shortcode'u
+     * [qmc_group_info group="grup-id"]
+     */
+    public function render_group_info_shortcode($atts, $content = null) {
+        $defaults = array(
+            'group' => '',
+            'show' => 'all', // all, name, count, description
+            'class' => 'qmc-group-info'
+        );
+        
+        $atts = shortcode_atts($defaults, $atts, 'qmc_group_info');
+        
+        if (empty($atts['group'])) {
+            return '<div class="qmc-error">Hata: Grup ID belirtilmedi.</div>';
+        }
+        
+        $group_data = EsistenzeQuickMenuCards::get_cards($atts['group']);
+        
+        if (!$group_data) {
+            return '<div class="qmc-error">Grup bulunamadı.</div>';
+        }
+        
+        $output = '<div class="' . esc_attr($atts['class']) . '">';
+        
+        $show_items = explode(',', $atts['show']);
+        $show_items = array_map('trim', $show_items);
+        
+        if (in_array('all', $show_items) || in_array('name', $show_items)) {
+            $output .= '<h4 class="qmc-group-name">' . esc_html($group_data['name']) . '</h4>';
+        }
+        
+        if (in_array('all', $show_items) || in_array('count', $show_items)) {
+            $card_count = count($group_data['cards'] ?? array());
+            $output .= '<p class="qmc-group-count">' . $card_count . ' kart</p>';
+        }
+        
+        if ((in_array('all', $show_items) || in_array('description', $show_items)) && !empty($group_data['description'])) {
+            $output .= '<p class="qmc-group-description">' . esc_html($group_data['description']) . '</p>';
+        }
+        
+        $output .= '</div>';
+        
+        return $output;
+    }
+    
+    /**
+     * Boolean değeri parse et
+     */
+    private function parse_boolean($value) {
+        if ($value === '') {
+            return null; // Ayarlardan al
+        }
+        
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    /**
+     * Shortcode'ları listele (debug için)
+     */
+    public function list_available_shortcodes() {
         return array(
-            'quick_menu_cards' => array(
-                'description' => 'Kartları ızgara düzeninde gösterir',
-                'attributes' => array(
-                    'id' => 'Grup ID (zorunlu)',
-                    'limit' => 'Gösterilecek kart sayısı sınırı',
-                    'columns' => 'Sütun sayısı (1-6)',
-                    'order' => 'Sıralama: asc, desc, random, title',
-                    'show_button' => 'Buton gösterilsin mi: yes/no',
-                    'button_text' => 'Özel buton metni',
-                    'class' => 'Ek CSS sınıfı',
-                    'responsive' => 'Responsive tasarım: yes/no'
-                ),
-                'examples' => array(
-                    '[quick_menu_cards id="1"]',
-                    '[quick_menu_cards id="1" limit="4" columns="2"]',
-                    '[quick_menu_cards id="1" order="random" button_text="Devamını Oku"]'
-                )
-            ),
-            'quick_menu_banner' => array(
-                'description' => 'Kartları banner düzeninde gösterir',
-                'attributes' => array(
-                    'id' => 'Grup ID (zorunlu)',
-                    'limit' => 'Gösterilecek kart sayısı sınırı',
-                    'columns' => 'Sütun sayısı (1-3)',
-                    'order' => 'Sıralama: asc, desc, random',
-                    'show_button' => 'Buton gösterilsin mi: yes/no',
-                    'button_text' => 'Özel buton metni',
-                    'class' => 'Ek CSS sınıfı',
-                    'height' => 'Banner yüksekliği: auto, small, medium, large'
-                ),
-                'examples' => array(
-                    '[quick_menu_banner id="1"]',
-                    '[quick_menu_banner id="1" columns="1" height="large"]',
-                    '[quick_menu_banner id="1" limit="2" button_text="Ürünleri Gör"]'
-                )
-            )
+            'quick_menu_cards' => 'Ana kart shortcode\'u - [quick_menu_cards group="grup-id"]',
+            'qmc_cards' => 'Kısa versiyon - [qmc_cards group="grup-id"]',
+            'qmc_banner' => 'Banner kart - [qmc_banner group="grup-id" card="0"]',
+            'qmc_list' => 'Liste görünümü - [qmc_list group="grup-id"]',
+            'qmc_masonry' => 'Masonry görünümü - [qmc_masonry group="grup-id"]',
+            'qmc_slider' => 'Slider görünümü - [qmc_slider group="grup-id"]',
+            'qmc_single_card' => 'Tek kart - [qmc_single_card group="grup-id" card="0"]',
+            'qmc_group_info' => 'Grup bilgisi - [qmc_group_info group="grup-id"]',
+            'esistenze_quick_menu' => 'Eski uyumluluk - [esistenze_quick_menu id="grup-id"]'
         );
+    }
+    
+    /**
+     * Shortcode yardım metni
+     */
+    public function get_shortcode_help() {
+        $help = '<div class="qmc-shortcode-help">';
+        $help .= '<h3>Quick Menu Cards Shortcode Kullanımı</h3>';
+        
+        $help .= '<h4>Ana Shortcode:</h4>';
+        $help .= '<code>[quick_menu_cards group="grup-id"]</code><br>';
+        $help .= '<strong>Parametreler:</strong><br>';
+        $help .= '• <code>group</code> - Grup ID (zorunlu)<br>';
+        $help .= '• <code>columns</code> - Sütun sayısı (varsayılan: ayarlardan)<br>';
+        $help .= '• <code>show_images</code> - Resimleri göster (true/false)<br>';
+        $help .= '• <code>show_descriptions</code> - Açıklamaları göster (true/false)<br>';
+        $help .= '• <code>limit</code> - Kart sayısı limiti (0 = tümü)<br>';
+        $help .= '• <code>class</code> - Özel CSS sınıfı<br>';
+        $help .= '• <code>style</code> - Görünüm türü (grid/list/masonry/slider)<br><br>';
+        
+        $help .= '<h4>Diğer Shortcode\'lar:</h4>';
+        $help .= '<code>[qmc_banner group="grup-id" card="0"]</code> - Banner kart<br>';
+        $help .= '<code>[qmc_list group="grup-id"]</code> - Liste görünümü<br>';
+        $help .= '<code>[qmc_masonry group="grup-id" columns="4"]</code> - Masonry görünümü<br>';
+        $help .= '<code>[qmc_slider group="grup-id" slides_to_show="3"]</code> - Slider görünümü<br>';
+        
+        $help .= '</div>';
+        
+        return $help;
     }
 }
+
+// Tek kart shortcode'unu da kaydet
+add_shortcode('qmc_single_card', array('EsistenzeQuickMenuCardsShortcodes', 'render_single_card_shortcode'));
+add_shortcode('qmc_group_info', array('EsistenzeQuickMenuCardsShortcodes', 'render_group_info_shortcode'));
 ?>
