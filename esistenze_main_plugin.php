@@ -464,7 +464,14 @@ EsistenzeWPKit::getInstance();
 // YETKİ FONKSİYONU: Quick Menu Cards ve diğer modüller için global capability
 if (!function_exists('esistenze_qmc_capability')) {
     function esistenze_qmc_capability() {
-        return 'manage_options'; // Sadece adminler erişebilir
+        // Admin ise 'manage_options', editör ise 'edit_pages' yetkisi ver
+        if (current_user_can('manage_options')) {
+            return 'manage_options';
+        } elseif (current_user_can('edit_pages')) {
+            return 'edit_pages';
+        } else {
+            return 'manage_options'; // Varsayılan olarak admin yetkisi
+        }
     }
 }
 }

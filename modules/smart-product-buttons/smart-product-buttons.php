@@ -92,7 +92,7 @@ class EsistenzeSmartButtons {
     public function ajax_reorder(): void {
         check_ajax_referer('esistenze_smart_button_reorder');
         
-        if (!current_user_can('manage_options') || empty($_POST['order'])) {
+        if (!current_user_can(esistenze_qmc_capability()) || empty($_POST['order'])) {
             wp_send_json_error('Yetkiniz yok veya geçersiz veri.');
         }
         
@@ -130,7 +130,7 @@ class EsistenzeSmartButtons {
      * @return void
      */
     public function save_button(): void {
-        if (!current_user_can('manage_options') || !check_admin_referer('esistenze_smart_button_save')) {
+        if (!current_user_can(esistenze_qmc_capability()) || !check_admin_referer('esistenze_smart_button_save')) {
             wp_die('Yetkiniz yok.');
         }
 
@@ -280,7 +280,7 @@ class EsistenzeSmartButtons {
      * @return void
      */
     public function import_settings(): void {
-        if (!current_user_can('manage_options') || !check_admin_referer('esistenze_smart_buttons_import')) {
+        if (!current_user_can(esistenze_qmc_capability()) || !check_admin_referer('esistenze_smart_buttons_import')) {
             wp_die('Yetkiniz yok.');
         }
         
