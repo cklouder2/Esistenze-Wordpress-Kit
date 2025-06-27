@@ -1,0 +1,56 @@
+/* Smart Product Buttons Module - Frontend Styles */
+
+.smart-buttons-frontend { 
+    margin: 20px 0; 
+    display: flex; 
+    gap: 10px; 
+    flex-wrap: wrap; 
+}
+
+.smart-btn { 
+    display: inline-flex; 
+    align-items: center; 
+    gap: 8px; 
+    padding: 12px 20px; 
+    border-radius: 25px; 
+    text-decoration: none; 
+    font-weight: 600; 
+    border: none; 
+    cursor: pointer;
+    transition: all 0.3s ease; 
+    color: white !important;
+}
+
+.smart-btn:hover { 
+    transform: translateY(-2px); 
+    opacity: 0.9; 
+}
+
+.smart-modal { 
+    display: none; 
+    position: fixed; 
+    z-index: 9999; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0,0,0,0.5); 
+}
+
+.smart-modal-content { 
+    background: white; 
+    margin: 15% auto; 
+    padding: 20px; 
+    border-radius: 8px; 
+    width: 80%; 
+    max-width: 500px; 
+    position: relative; 
+}
+
+.smart-close { 
+    position: absolute; 
+    right: 15px; 
+    top: 15px; 
+    font-size: 28px; 
+    cursor: pointer; 
+} 

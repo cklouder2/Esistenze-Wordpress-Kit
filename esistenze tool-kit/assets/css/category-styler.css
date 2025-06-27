@@ -1,0 +1,342 @@
+/* Category Styler Module - Admin Styles */
+.esistenza-category-styler .esistenza-module-header {
+    background: linear-gradient(135deg, #ff5722 0%, #e64a19 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.esistenza-category-styler .esistenza-module-header h1 {
+    color: white;
+    margin: 0 0 10px;
+}
+
+.esistenza-category-styler .esistenza-module-header .description {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.esistenza-category-styler .form-container {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.esistenza-category-styler .form-container ul {
+    list-style: none;
+    padding: 0;
+}
+
+.esistenza-category-styler .form-container li {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.esistenza-category-styler .shortcode-highlight {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    border-left: 4px solid #ff5722;
+}
+
+.esistenza-category-styler .shortcode-highlight code {
+    font-size: 16px;
+    color: #d63384;
+}
+
+.esistenza-category-styler .status-container {
+    background: #e8f5e8;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #4caf50;
+}
+
+.esistenza-category-styler .status-container h3 {
+    color: #2e7d32;
+    margin-top: 0;
+}
+
+.esistenza-category-styler .status-container p {
+    margin: 0;
+    color: #388e3c;
+}
+
+/* Category Styler Module - Frontend Styles */
+
+/* Main Grid Layout for Shortcode */
+.category-styler-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.category-styler-item {
+    background: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.category-styler-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.category-styler-image {
+    height: 150px;
+    background-size: cover;
+    background-position: center;
+}
+
+.category-styler-title {
+    font-size: 1.3em;
+    font-weight: 600;
+    color: #2c3e50;
+    padding: 15px;
+    margin: 0;
+    font-family: "Montserrat", sans-serif;
+    text-align: center;
+}
+
+.category-styler-description {
+    font-size: 0.95rem;
+    color: #7f8c8d;
+    padding: 0 15px 15px;
+    margin: 0;
+    line-height: 1.6;
+    font-family: "Roboto", sans-serif;
+    text-align: center;
+}
+
+.category-styler-item a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Sidebar Category Styling for #nav_menu-7 */
+#nav_menu-7 .widget_nav_menu h4 {
+    font-size: 1.4em;
+    color: #ffffff;
+    padding: 15px 20px;
+    margin: 0 0 20px;
+    font-family: "Montserrat", sans-serif;
+    background: linear-gradient(90deg, #4CAF50, #45a049);
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+#nav_menu-7 .widget_nav_menu h4:hover {
+    background: linear-gradient(90deg, #45a049, #2E7D32);
+    transform: translateY(-2px);
+}
+
+#nav_menu-7 .menu {
+    list-style: none;
+    padding: 0;
+}
+
+#nav_menu-7 .menu li {
+    margin-bottom: 12px;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+#nav_menu-7 .menu li:hover {
+    background: #f9f9f9;
+    transform: translateX(5px);
+}
+
+#nav_menu-7 .menu li a {
+    display: block;
+    padding: 12px 15px;
+    color: #2c3e50;
+    font-family: "Montserrat", sans-serif;
+    font-size: 1em;
+    text-decoration: none;
+    text-align: left;
+}
+
+#nav_menu-7 .menu li a:hover {
+    color: #4CAF50;
+}
+
+/* Sidebar Category Styling for #nav_menu-3 */
+#nav_menu-3 .widget_nav_menu h4 {
+    font-size: 1.4em;
+    color: #ffffff;
+    padding: 15px 20px;
+    margin: 0 0 20px;
+    font-family: "Montserrat", sans-serif;
+    background: linear-gradient(90deg, #4CAF50, #45a049);
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+#nav_menu-3 .widget_nav_menu h4:hover {
+    background: linear-gradient(90deg, #45a049, #2E7D32);
+    transform: translateY(-2px);
+}
+
+#nav_menu-3 .menu {
+    list-style: none;
+    padding: 0;
+}
+
+#nav_menu-3 .menu li {
+    margin-bottom: 12px;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+#nav_menu-3 .menu li:hover {
+    background: #f9f9f9;
+    transform: translateX(5px);
+}
+
+#nav_menu-3 .menu li a {
+    display: block;
+    padding: 12px 15px;
+    color: #2c3e50;
+    font-family: "Montserrat", sans-serif;
+    font-size: 1em;
+    text-decoration: none;
+    text-align: left;
+}
+
+#nav_menu-3 .menu li a:hover {
+    color: #4CAF50;
+}
+
+/* Page Header Styling for #page-header-wrap */
+#page-header-wrap {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 70%, #2E7D32 100%) !important;
+    height: 350px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+#page-header-bg {
+    background: none !important;
+}
+
+#page-header-wrap .inner-wrap h1 {
+    font-size: 3em;
+    font-weight: 800;
+    color: #ffffff;
+    text-transform: uppercase;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 20px 40px;
+    border-radius: 15px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    font-family: "Montserrat", sans-serif;
+    display: inline-block;
+    animation: fadeInUp 1s ease-out;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#page-header-wrap .inner-wrap h1:hover {
+    transform: scale(1.1);
+    background: rgba(0, 0, 0, 0.7);
+}
+
+/* Shop Header Styling */
+.nectar-shop-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+    background: #ffffff;
+    box-shadow: none;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.nectar-shop-header .page-title {
+    font-size: 2.2em;
+    font-weight: 700;
+    color: #86ba3d;
+    font-family: "Montserrat", sans-serif;
+    margin: 0;
+    text-align: center;
+    padding: 10px 0;
+}
+
+/* Product Styling */
+.products .product {
+    border: 2px solid #4CAF50 !important;
+    border-radius: 15px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.products .product:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    transform: translateY(-3px);
+}
+
+.woocommerce-loop-product__title {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #2c3e50;
+    font-family: "Montserrat", sans-serif;
+    text-align: center;
+    margin: 10px 0;
+}
+
+.button {
+    background: #4CAF50;
+    color: #fff;
+    border-radius: 20px;
+    padding: 8px 15px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.button:hover {
+    background: #45a049;
+    transform: scale(1.05);
+}
+
+/* Hide price-hover-wrap on category pages */
+.woocommerce-products-header ~ .products .price-hover-wrap {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .category-styler-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    #page-header-wrap .inner-wrap h1 {
+        font-size: 2em;
+    }
+} 

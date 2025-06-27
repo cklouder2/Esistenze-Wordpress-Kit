@@ -1,0 +1,32 @@
+/* Esistenze Tool-Kit Public Styles */
+
+.esistenze-toolkit {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Common transitions and animations */
+.esistenze-transition {
+    transition: all 0.3s ease;
+}
+
+.esistenze-fade-in {
+    animation: esistenzeFadeIn 0.5s ease-in;
+}
+
+@keyframes esistenzeFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+    .esistenze-hide-mobile {
+        display: none !important;
+    }
+}
+
+@media (min-width: 769px) {
+    .esistenze-hide-desktop {
+        display: none !important;
+    }
+} 

@@ -1,0 +1,67 @@
+/* Custom Topbar Module - Frontend Styles */
+
+.xai-top-bar {
+    background: var(--topbar-bg-color, #4CAF50);
+    color: var(--topbar-text-color, #ffffff);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 9999;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.xai-top-bar a { 
+    color: var(--topbar-text-color, #ffffff); 
+    text-decoration: none; 
+}
+
+.xai-top-bar a:hover { 
+    opacity: 0.8; 
+}
+
+.xai-top-bar-menu { 
+    list-style: none; 
+    margin: 0; 
+    padding: 0; 
+    display: flex; 
+    gap: 20px; 
+}
+
+.xai-top-bar-menu li { 
+    margin: 0; 
+}
+
+.xai-top-bar-contact { 
+    list-style: none; 
+    margin: 0; 
+    padding: 0; 
+    display: flex; 
+    gap: 20px; 
+}
+
+.xai-top-bar-contact li { 
+    margin: 0; 
+}
+
+.xai-top-bar-contact i { 
+    margin-right: 5px; 
+}
+
+@media (max-width: 768px) {
+    .xai-top-bar { 
+        flex-direction: column; 
+        gap: 10px; 
+    }
+    
+    .xai-top-bar-menu { 
+        flex-direction: column; 
+        gap: 10px; 
+    }
+    
+    .xai-top-bar-contact { 
+        flex-direction: column; 
+        gap: 10px; 
+    }
+} 

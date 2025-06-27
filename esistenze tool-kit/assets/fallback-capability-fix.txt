@@ -1,0 +1,16 @@
+YEDEK ÇÖZÜM - Sadece gerekirse kullanın:
+
+Eğer v1.5.1 ile sorun çözülmezse, aşağıdaki capability değişikliklerini uygulayın:
+
+1. Ana eklenti dosyasında (esistenze-tool-kit.php):
+   - 95. satırdaki 'manage_options' -> 'read' olarak değiştirin
+   - 106. satırdaki 'manage_options' -> 'read' olarak değiştirin
+
+2. Tüm modül dosyalarında:
+   - 'manage_options' -> 'edit_posts' olarak değiştirin
+
+Bu değişiklik daha düşük yetki seviyesi kullanır ve erişim sorununu çözmelidir.
+
+UYARI: Bu değişiklik güvenlik seviyesini düşürür. Sadece geçici çözüm olarak kullanın.
+
+Normal çözüm çalıştıktan sonra, bu dosyayı silin. 
